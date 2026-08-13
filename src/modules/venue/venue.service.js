@@ -1,3 +1,4 @@
+// src/modules/venue/venue.service.js
 const Venue = require("./venue.model");
 
 class VenueService {
@@ -28,7 +29,7 @@ class VenueService {
   }
 
   static async getFeatured() {
-    return await Venue.find({ featured: true }).limit(3);
+    return await Venue.find({ featured: true }).limit(5);
   }
 
   static async getById(id) {

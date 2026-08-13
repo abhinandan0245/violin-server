@@ -26,10 +26,7 @@ const venueSchema = new mongoose.Schema(
       type: String,
       required: [true, "Capacity is required"],
     },
-    price: {
-      type: String,
-      required: [true, "Price is required"],
-    },
+   
     description: {
       type: String,
       required: [true, "Description is required"],
@@ -54,15 +51,7 @@ const venueSchema = new mongoose.Schema(
         type: String,
       },
     ],
-    contactNumber: {
-      type: String,
-      trim: true,
-    },
-    email: {
-      type: String,
-      trim: true,
-      lowercase: true,
-    },
+   
     website: {
       type: String,
       trim: true,

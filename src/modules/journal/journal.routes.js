@@ -3,7 +3,7 @@ const express = require("express");
 const router = express.Router();
 const JournalController = require("./journal.controller");
 const { protect } = require("../../middleware/auth");
-const upload = require("../../config/multer");
+const {upload} = require("../../config/multer");
 
 // Public routes
 router.get("/", JournalController.getAll);

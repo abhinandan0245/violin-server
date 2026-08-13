@@ -3,7 +3,7 @@ const router = express.Router();
 const { body } = require("express-validator");
 const AdminController = require("./admin.controller");
 const { protect } = require("../../middleware/auth");
-const upload = require("../../config/multer");
+const {upload} = require("../../config/multer");
 
 // Public routes
 router.post(

@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const PortfolioController = require("./portfolio.controller");
 const { protect } = require("../../middleware/auth");
-const upload = require("../../config/multer");
+const {upload} = require("../../config/multer");
 
 // Public routes
 router.get("/", PortfolioController.getAll);
