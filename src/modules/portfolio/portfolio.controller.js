@@ -20,14 +20,13 @@ class PortfolioController {
     }
   }
 
-  // NEW: Get all video URLs
   static async getVideos(req, res) {
     try {
-      const videos = await PortfolioService.getVideos();
+      const { page = 1, limit = 3 } = req.query;
+      const result = await PortfolioService.getVideos({ page, limit });
       res.status(200).json({
         success: true,
-        data: videos,
-        count: videos.length,
+        data: result,
       });
     } catch (error) {
       res.status(500).json({
@@ -52,22 +51,24 @@ class PortfolioController {
     }
   }
 
-  // Create Portfolio with Image Upload
+  // ✅ Create with multiple images - FIXED
   static async create(req, res) {
     try {
       const data = req.body;
+      const files = req.files || {};
 
-      // If image uploaded, add Cloudinary URL
-      if (req.file) {
-        data.image = req.file.path; // Cloudinary URL
+      console.log("Files received:", Object.keys(files));
+
+      // Handle main image
+      if (files.image && files.image.length > 0) {
+        data.image = files.image[0].path;
       }
 
-      // If multiple images uploaded
-      if (req.files && req.files.length > 0) {
-        data.images = req.files.map((file) => file.path);
-        // If no main image set, use first image as main
-        if (!data.image && req.files.length > 0) {
-          data.image = req.files[0].path;
+      // Handle additional images
+      if (files.images && files.images.length > 0) {
+        data.images = files.images.map((file) => file.path);
+        if (!data.image && files.images.length > 0) {
+          data.image = files.images[0].path;
         }
       }
 
@@ -79,8 +80,17 @@ class PortfolioController {
         });
       }
 
-      // Video URL is directly taken from body (optional)
-      // videoUrl field is already in schema
+      // Parse highlights if sent as JSON string
+      if (data.highlights && typeof data.highlights === "string") {
+        try {
+          data.highlights = JSON.parse(data.highlights);
+        } catch (e) {
+          data.highlights = data.highlights
+            .split(",")
+            .map((h) => h.trim())
+            .filter(Boolean);
+        }
+      }
 
       const item = await PortfolioService.create(data);
 
@@ -90,13 +100,26 @@ class PortfolioController {
         data: item,
       });
     } catch (error) {
-      // If error, delete uploaded images from Cloudinary
-      if (req.file) {
-        await cloudinary.uploader.destroy(req.file.filename);
+      console.error("Create error:", error);
+
+      // Delete uploaded images on error
+      const files = req.files || {};
+
+      if (files.image && files.image.length > 0) {
+        try {
+          const publicId =
+            files.image[0].filename ||
+            files.image[0].path.split("/").pop().split(".")[0];
+          await cloudinary.uploader.destroy(publicId);
+        } catch (e) {}
       }
-      if (req.files && req.files.length > 0) {
-        for (const file of req.files) {
-          await cloudinary.uploader.destroy(file.filename);
+      if (files.images && files.images.length > 0) {
+        for (const file of files.images) {
+          try {
+            const publicId =
+              file.filename || file.path.split("/").pop().split(".")[0];
+            await cloudinary.uploader.destroy(publicId);
+          } catch (e) {}
         }
       }
 
@@ -107,7 +130,7 @@ class PortfolioController {
     }
   }
 
-  // Update Portfolio with Image Upload
+  // ✅ Update with multiple images - FIXED
   static async update(req, res) {
     try {
       const existingItem = await PortfolioService.getById(req.params.id);
@@ -120,39 +143,81 @@ class PortfolioController {
       }
 
       const data = req.body;
+      const files = req.files || {};
 
-      // If new image uploaded
-      if (req.file) {
-        // Delete old image from Cloudinary
+      console.log("Files received:", Object.keys(files));
+
+      // Handle main image update
+      if (files.image && files.image.length > 0) {
+        // Delete old main image from Cloudinary
         if (existingItem.image) {
-          const publicId = existingItem.image.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(
-            `violin-events/portfolio/${publicId}`,
-          );
+          try {
+            const publicId = existingItem.image.split("/").pop().split(".")[0];
+            await cloudinary.uploader.destroy(
+              `violin-events/portfolio/${publicId}`,
+            );
+          } catch (e) {}
         }
-        data.image = req.file.path;
+        data.image = files.image[0].path;
       }
 
-      // If multiple images uploaded
-      if (req.files && req.files.length > 0) {
-        // Delete old images from Cloudinary
-        if (existingItem.images && existingItem.images.length > 0) {
-          for (const img of existingItem.images) {
+      // Handle additional images
+      if (files.images && files.images.length > 0) {
+        // Parse existing images from body
+        let existingImages = existingItem.images || [];
+        if (data.existingImages && typeof data.existingImages === "string") {
+          try {
+            existingImages = JSON.parse(data.existingImages);
+          } catch (e) {
+            existingImages = existingItem.images || [];
+          }
+        }
+
+        // Delete images that are no longer needed
+        const imagesToDelete = (existingItem.images || []).filter(
+          (img) => !existingImages.includes(img),
+        );
+
+        for (const img of imagesToDelete) {
+          try {
             const publicId = img.split("/").pop().split(".")[0];
             await cloudinary.uploader.destroy(
               `violin-events/portfolio/${publicId}`,
             );
-          }
+          } catch (e) {}
         }
-        data.images = req.files.map((file) => file.path);
+
+        // Combine existing + new images
+        const newImagePaths = files.images.map((file) => file.path);
+        data.images = [...existingImages, ...newImagePaths];
+
         // Update main image if not provided separately
-        if (!req.file && req.files.length > 0) {
-          data.image = req.files[0].path;
+        if (!files.image && files.images.length > 0 && !data.image) {
+          data.image = files.images[0].path;
+        }
+      } else if (
+        data.existingImages &&
+        typeof data.existingImages === "string"
+      ) {
+        // If no new images but existingImages is provided
+        try {
+          data.images = JSON.parse(data.existingImages);
+        } catch (e) {
+          data.images = existingItem.images || [];
         }
       }
 
-      // Video URL is directly taken from body (optional)
-      // videoUrl field is already in schema
+      // Parse highlights
+      if (data.highlights && typeof data.highlights === "string") {
+        try {
+          data.highlights = JSON.parse(data.highlights);
+        } catch (e) {
+          data.highlights = data.highlights
+            .split(",")
+            .map((h) => h.trim())
+            .filter(Boolean);
+        }
+      }
 
       const item = await PortfolioService.update(req.params.id, data);
 
@@ -162,13 +227,26 @@ class PortfolioController {
         data: item,
       });
     } catch (error) {
-      // If error, delete newly uploaded images from Cloudinary
-      if (req.file) {
-        await cloudinary.uploader.destroy(req.file.filename);
+      console.error("Update error:", error);
+
+      // Delete newly uploaded images on error
+      const files = req.files || {};
+
+      if (files.image && files.image.length > 0) {
+        try {
+          const publicId =
+            files.image[0].filename ||
+            files.image[0].path.split("/").pop().split(".")[0];
+          await cloudinary.uploader.destroy(publicId);
+        } catch (e) {}
       }
-      if (req.files && req.files.length > 0) {
-        for (const file of req.files) {
-          await cloudinary.uploader.destroy(file.filename);
+      if (files.images && files.images.length > 0) {
+        for (const file of files.images) {
+          try {
+            const publicId =
+              file.filename || file.path.split("/").pop().split(".")[0];
+            await cloudinary.uploader.destroy(publicId);
+          } catch (e) {}
         }
       }
 
@@ -179,7 +257,6 @@ class PortfolioController {
     }
   }
 
-  // Delete Portfolio (Delete images too)
   static async delete(req, res) {
     try {
       const item = await PortfolioService.getById(req.params.id);
@@ -193,19 +270,23 @@ class PortfolioController {
 
       // Delete main image from Cloudinary
       if (item.image) {
-        const publicId = item.image.split("/").pop().split(".")[0];
-        await cloudinary.uploader.destroy(
-          `violin-events/portfolio/${publicId}`,
-        );
+        try {
+          const publicId = item.image.split("/").pop().split(".")[0];
+          await cloudinary.uploader.destroy(
+            `violin-events/portfolio/${publicId}`,
+          );
+        } catch (e) {}
       }
 
       // Delete all images from Cloudinary
       if (item.images && item.images.length > 0) {
         for (const img of item.images) {
-          const publicId = img.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(
-            `violin-events/portfolio/${publicId}`,
-          );
+          try {
+            const publicId = img.split("/").pop().split(".")[0];
+            await cloudinary.uploader.destroy(
+              `violin-events/portfolio/${publicId}`,
+            );
+          } catch (e) {}
         }
       }
 

@@ -11,6 +11,11 @@ const venueRoutes = require("./modules/venue/venue.routes");
 const portfolioRoutes = require("./modules/portfolio/portfolio.routes");
 const contactRoutes = require("./modules/contact/contact.routes");
 const journalRoutes = require("./modules/journal/journal.routes");
+const portfolioPageRoutes = require("./modules/portfolioPage/portfolioPage.routes");
+const artistCategoryRoutes = require("./modules/artistCategory/artistCategory.routes");
+const artistRoutes = require("./modules/artist/artist.routes");
+
+
 
 // Import middleware
 const errorHandler = require("./middleware/errorHandler");
@@ -48,6 +53,7 @@ app.use("/api", limiter);
 //   }),
 // );
 // CORS
+
 app.use(
   cors({
     origin: "*",
@@ -82,6 +88,9 @@ app.use("/api/venues", venueRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/journal", journalRoutes);
+app.use("/api/portfolio-page", portfolioPageRoutes);
+app.use("/api/artist-categories", artistCategoryRoutes);
+app.use("/api/artists", artistRoutes);
 
 // 404 handler
 app.use((req, res) => {

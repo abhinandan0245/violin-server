@@ -2,22 +2,35 @@ const express = require("express");
 const router = express.Router();
 const PortfolioController = require("./portfolio.controller");
 const { protect } = require("../../middleware/auth");
-const {upload} = require("../../config/multer");
+const upload = require("../../config/multer");
 
 // Public routes
 router.get("/", PortfolioController.getAll);
 router.get("/featured", PortfolioController.getFeatured);
-router.get("/videos", PortfolioController.getVideos); // New route for videos
+router.get("/videos", PortfolioController.getVideos);
 router.get("/:id", PortfolioController.getById);
 
-// Admin routes with image upload
-// Single image upload - use 'image' field
-router.post("/", protect, upload.single("image"), PortfolioController.create);
-router.put("/:id", protect, upload.single("image"), PortfolioController.update);
-router.delete("/:id", protect, PortfolioController.delete);
+// ✅ Admin routes with multiple image uploads
+router.post(
+  "/",
+  protect,
+  upload.fields([
+    { name: "image", maxCount: 1 }, // Main image
+    { name: "images", maxCount: 10 }, // Additional images
+  ]),
+  PortfolioController.create,
+);
 
-// For multiple images (optional)
-// router.post("/", protect, upload.array("images", 5), PortfolioController.create);
-// router.put("/:id", protect, upload.array("images", 5), PortfolioController.update);
+router.put(
+  "/:id",
+  protect,
+  upload.fields([
+    { name: "image", maxCount: 1 },
+    { name: "images", maxCount: 10 },
+  ]),
+  PortfolioController.update,
+);
+
+router.delete("/:id", protect, PortfolioController.delete);
 
 module.exports = router;

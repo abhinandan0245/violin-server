@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const VenueController = require("./venue.controller");
 const { protect } = require("../../middleware/auth");
-const {upload} = require("../../config/multer"); // ✅ Import venueUpload
+const upload = require("../../config/multer"); // ✅ Import venueUpload
 
 // Public routes
 router.get("/", VenueController.getAll);

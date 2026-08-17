@@ -27,8 +27,9 @@ class PortfolioService {
     };
   }
 
+  // ✅ REMOVE limit from getFeatured - get ALL featured items
   static async getFeatured() {
-    return await Portfolio.find({ featured: true }).limit(3);
+    return await Portfolio.find({ featured: true }).sort({ createdAt: -1 });
   }
 
   static async getById(id) {
@@ -50,17 +51,28 @@ class PortfolioService {
     return await Portfolio.findByIdAndDelete(id);
   }
 
-   // ✅ NEW: Get all video URLs from portfolio items
-  static async getVideos() {
+  // ✅ Get videos with pagination
+  static async getVideos(query = {}) {
     try {
-      // Find all portfolio items that have a videoUrl and are active
-      const items = await Portfolio.find({ 
+      const { page = 1, limit = 3 } = query;
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      // Find all portfolio items that have a videoUrl
+      const filter = {
         videoUrl: { $exists: true, $ne: null, $ne: "" },
-        isActive: true 
-      }).sort({ createdAt: -1 });
-      
+        isActive: true,
+      };
+
+      const [items, total] = await Promise.all([
+        Portfolio.find(filter)
+          .limit(parseInt(limit))
+          .skip(skip)
+          .sort({ createdAt: -1 }),
+        Portfolio.countDocuments(filter),
+      ]);
+
       // Return only the video URLs with metadata
-      return items.map(item => ({
+      const videos = items.map(item => ({
         id: item._id,
         title: item.title,
         location: item.location,
@@ -70,11 +82,18 @@ class PortfolioService {
         featured: item.featured,
         date: item.date,
       }));
+
+      return {
+        items: videos,
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      };
     } catch (error) {
       throw error;
     }
   }
-
 }
 
 module.exports = PortfolioService;

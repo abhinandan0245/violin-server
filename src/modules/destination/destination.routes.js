@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const DestinationController = require("./destination.controller");
 const { protect } = require("../../middleware/auth");
-const {upload} = require("../../config/multer");
+const upload = require("../../config/multer");
 
 // Public routes (Frontend will use these)
 router.get("/", DestinationController.getAll);

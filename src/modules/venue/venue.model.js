@@ -26,7 +26,7 @@ const venueSchema = new mongoose.Schema(
       type: String,
       required: [true, "Capacity is required"],
     },
-   
+
     description: {
       type: String,
       required: [true, "Description is required"],
@@ -44,15 +44,15 @@ const venueSchema = new mongoose.Schema(
     },
     isActive: {
       type: Boolean,
-      default: true, // ✅ Changed from false to true
+      default: true, //  Changed from false to true
     },
     images: [
       {
         type: String,
       },
     ],
-   
-    website: {
+
+    videoUrl: {
       type: String,
       trim: true,
     },
