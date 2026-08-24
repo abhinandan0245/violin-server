@@ -16,17 +16,16 @@ const venueSchema = new mongoose.Schema(
     category: {
       type: String,
       required: [true, "Category is required"],
-      // No enum - any string allowed
     },
     image: {
       type: String,
-      required: [true, "Image is required"],
+      required: false, // ✅ Made optional
+      default: null,
     },
     capacity: {
       type: String,
       required: [true, "Capacity is required"],
     },
-
     description: {
       type: String,
       required: [true, "Description is required"],
@@ -44,14 +43,13 @@ const venueSchema = new mongoose.Schema(
     },
     isActive: {
       type: Boolean,
-      default: true, //  Changed from false to true
+      default: true,
     },
     images: [
       {
         type: String,
       },
     ],
-
     videoUrl: {
       type: String,
       trim: true,

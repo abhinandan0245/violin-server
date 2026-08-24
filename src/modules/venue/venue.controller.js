@@ -58,25 +58,19 @@ class VenueController {
         }
       }
 
-      // ✅ Handle multiple images (min 1, max 5)
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "At least 1 image is required",
-        });
+      // ✅ Check if images are provided
+      // Allow creation without images (image is now optional)
+      if (req.files && req.files.length > 0) {
+        // Set first image as main image
+        data.image = req.files[0].path;
+        data.images = req.files.map((file) => file.path);
+        console.log(`✅ ${req.files.length} images uploaded`);
+      } else {
+        // No images uploaded, set to empty or null
+        data.image = null;
+        data.images = [];
+        console.log("ℹ️ No images uploaded");
       }
-
-      if (req.files.length > 5) {
-        return res.status(400).json({
-          success: false,
-          message: "Maximum 5 images allowed",
-        });
-      }
-
-      // Set first image as main image
-      data.image = req.files[0].path;
-      data.images = req.files.map((file) => file.path);
-      console.log(`✅ ${req.files.length} images uploaded`);
 
       // Validate required fields
       const requiredFields = [
@@ -90,11 +84,13 @@ class VenueController {
 
       if (missingFields.length > 0) {
         // Clean up uploaded files if validation fails
-        for (const file of req.files) {
-          try {
-            await cloudinary.uploader.destroy(file.filename);
-          } catch (err) {
-            console.error("Error deleting image:", err);
+        if (req.files) {
+          for (const file of req.files) {
+            try {
+              await cloudinary.uploader.destroy(file.filename);
+            } catch (err) {
+              console.error("Error deleting image:", err);
+            }
           }
         }
         return res.status(400).json({
@@ -119,9 +115,10 @@ class VenueController {
 
       const venue = await VenueService.create(data);
 
+      const imageCount = req.files ? req.files.length : 0;
       res.status(201).json({
         success: true,
-        message: `Venue created successfully with ${req.files.length} images`,
+        message: `Venue created successfully with ${imageCount} images`,
         data: venue,
       });
     } catch (error) {
@@ -145,7 +142,7 @@ class VenueController {
     }
   }
 
-  // ✅ UPDATE - Multiple Images (min 1, max 5)
+  // ✅ UPDATE - Multiple Images
   static async update(req, res) {
     try {
       const existingVenue = await VenueService.getById(req.params.id);
@@ -191,7 +188,7 @@ class VenueController {
           data.replaceMainImage === "true" ||
           data.replaceMainImage === true
         ) {
-          // Delete old main image
+          // Delete old main image if it exists
           if (existingVenue.image) {
             try {
               const publicId = existingVenue.image
@@ -206,11 +203,18 @@ class VenueController {
             }
           }
           data.image = newImages[0];
+        } else {
+          // Keep existing main image, just add new images to gallery
+          data.image = existingVenue.image;
         }
 
         // Add new images to existing images array
         const currentImages = existingVenue.images || [];
         data.images = [...currentImages, ...newImages];
+      } else {
+        // No new images - keep existing images
+        data.image = existingVenue.image;
+        data.images = existingVenue.images || [];
       }
 
       // Handle amenities
