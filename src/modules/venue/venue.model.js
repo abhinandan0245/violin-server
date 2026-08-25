@@ -4,18 +4,18 @@ const venueSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Venue name is required"],
+      required: [false, "Venue name is required"],
       trim: true,
       unique: true,
     },
     location: {
       type: String,
-      required: [true, "Location is required"],
+      required: [false, "Location is required"],
       trim: true,
     },
     category: {
       type: String,
-      required: [true, "Category is required"],
+      required: [false, "Category is required"],
     },
     image: {
       type: String,
@@ -24,11 +24,11 @@ const venueSchema = new mongoose.Schema(
     },
     capacity: {
       type: String,
-      required: [true, "Capacity is required"],
+      required: [false, "Capacity is required"],
     },
     description: {
       type: String,
-      required: [true, "Description is required"],
+      required: [false, "Description is required"],
       maxlength: [500, "Description cannot exceed 500 characters"],
     },
     amenities: [

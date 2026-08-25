@@ -37,110 +37,109 @@ class VenueController {
   }
 
   // ✅ CREATE - Multiple Images (min 1, max 5)
-  static async create(req, res) {
-    try {
-      console.log("📝 Create Venue Request:");
-      console.log("Body:", req.body);
-      console.log(
-        "Files:",
-        req.files ? `${req.files.length} images received` : "❌ No images",
-      );
+ // In the create method, remove the required fields validation
+static async create(req, res) {
+  try {
+    console.log("📝 Create Venue Request:");
+    console.log("Body:", req.body);
+    console.log(
+      "Files:",
+      req.files ? `${req.files.length} images received` : "❌ No images",
+    );
 
-      let data = req.body;
+    let data = req.body;
 
-      // Parse JSON data if sent as string
-      if (req.body.data) {
-        try {
-          data = JSON.parse(req.body.data);
-          console.log("Parsed JSON data:", data);
-        } catch (error) {
-          console.error("Error parsing JSON:", error);
-        }
+    // Parse JSON data if sent as string
+    if (req.body.data) {
+      try {
+        data = JSON.parse(req.body.data);
+        console.log("Parsed JSON data:", data);
+      } catch (error) {
+        console.error("Error parsing JSON:", error);
       }
-
-      // ✅ Check if images are provided
-      // Allow creation without images (image is now optional)
-      if (req.files && req.files.length > 0) {
-        // Set first image as main image
-        data.image = req.files[0].path;
-        data.images = req.files.map((file) => file.path);
-        console.log(`✅ ${req.files.length} images uploaded`);
-      } else {
-        // No images uploaded, set to empty or null
-        data.image = null;
-        data.images = [];
-        console.log("ℹ️ No images uploaded");
-      }
-
-      // Validate required fields
-      const requiredFields = [
-        "name",
-        "location",
-        "category",
-        "capacity",
-        "description",
-      ];
-      const missingFields = requiredFields.filter((field) => !data[field]);
-
-      if (missingFields.length > 0) {
-        // Clean up uploaded files if validation fails
-        if (req.files) {
-          for (const file of req.files) {
-            try {
-              await cloudinary.uploader.destroy(file.filename);
-            } catch (err) {
-              console.error("Error deleting image:", err);
-            }
-          }
-        }
-        return res.status(400).json({
-          success: false,
-          message: `Missing required fields: ${missingFields.join(", ")}`,
-          received: data,
-        });
-      }
-
-      // Handle amenities
-      if (data.amenities) {
-        if (typeof data.amenities === "string") {
-          data.amenities = data.amenities
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean);
-        }
-      }
-
-      // Handle featured
-      data.featured = data.featured === "true" || data.featured === true;
-
-      const venue = await VenueService.create(data);
-
-      const imageCount = req.files ? req.files.length : 0;
-      res.status(201).json({
-        success: true,
-        message: `Venue created successfully with ${imageCount} images`,
-        data: venue,
-      });
-    } catch (error) {
-      console.error("❌ Create Venue Error:", error);
-
-      // Clean up uploaded files if error occurs
-      if (req.files) {
-        for (const file of req.files) {
-          try {
-            await cloudinary.uploader.destroy(file.filename);
-          } catch (err) {
-            console.error("Error deleting image:", err);
-          }
-        }
-      }
-
-      res.status(500).json({
-        success: false,
-        message: error.message || "Failed to create venue",
-      });
     }
+
+    // ✅ Check if images are provided
+    if (req.files && req.files.length > 0) {
+      // Set first image as main image
+      data.image = req.files[0].path;
+      data.images = req.files.map((file) => file.path);
+      console.log(`✅ ${req.files.length} images uploaded`);
+    } else {
+      // No images uploaded, set to empty or null
+      data.image = null;
+      data.images = [];
+      console.log("ℹ️ No images uploaded");
+    }
+
+    // ❌ REMOVE THIS VALIDATION BLOCK
+    // const requiredFields = [
+    //   "name",
+    //   "location",
+    //   "category",
+    //   "capacity",
+    //   "description",
+    // ];
+    // const missingFields = requiredFields.filter((field) => !data[field]);
+    // if (missingFields.length > 0) {
+    //   // Clean up uploaded files if validation fails
+    //   if (req.files) {
+    //     for (const file of req.files) {
+    //       try {
+    //         await cloudinary.uploader.destroy(file.filename);
+    //       } catch (err) {
+    //         console.error("Error deleting image:", err);
+    //       }
+    //     }
+    //   }
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: `Missing required fields: ${missingFields.join(", ")}`,
+    //     received: data,
+    //   });
+    // }
+
+    // Handle amenities
+    if (data.amenities) {
+      if (typeof data.amenities === "string") {
+        data.amenities = data.amenities
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }
+    }
+
+    // Handle featured
+    data.featured = data.featured === "true" || data.featured === true;
+
+    const venue = await VenueService.create(data);
+
+    const imageCount = req.files ? req.files.length : 0;
+    res.status(201).json({
+      success: true,
+      message: `Venue created successfully with ${imageCount} images`,
+      data: venue,
+    });
+  } catch (error) {
+    console.error("❌ Create Venue Error:", error);
+
+    // Clean up uploaded files if error occurs
+    if (req.files) {
+      for (const file of req.files) {
+        try {
+          await cloudinary.uploader.destroy(file.filename);
+        } catch (err) {
+          console.error("Error deleting image:", err);
+        }
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create venue",
+    });
   }
+}
 
   // ✅ UPDATE - Multiple Images
   static async update(req, res) {

@@ -7,22 +7,22 @@ const destinationSchema = new mongoose.Schema(
     // ✅ Add country, state, city
     country: {
       type: String,
-      required: [true, "Country is required"],
+      required: [false, "Country is required"],
       trim: true,
     },
     state: {
       type: String,
-      required: [true, "State is required"],
+      required: [false, "State is required"],
       trim: true,
     },
     city: {
       type: String,
-      required: [true, "City is required"],
+      required: [false, "City is required"],
       trim: true,
     },
     category: {
       type: String,
-      required: [true, "Category is required"],
+      required: [false, "Category is required"],
     },
     image: {
       type: String,
@@ -30,11 +30,11 @@ const destinationSchema = new mongoose.Schema(
     },
     price: {
       type: String,
-      required: [true, "Price is required"],
+      required: [false, "Price is required"],
     },
     description: {
       type: String,
-      required: [true, "Description is required"],
+      required: [false, "Description is required"],
       maxlength: [100, "Description cannot exceed 100 characters"],
     },
     tags: [

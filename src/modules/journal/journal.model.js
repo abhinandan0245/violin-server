@@ -5,28 +5,28 @@ const journalSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: [true, "Title is required"],
+      required: [false, "Title is required"],
       trim: true,
     },
     // ✅ SLUG REMOVED - No longer needed
     category: {
       type: String,
-      required: [true, "Category is required"],
+      required: [false, "Category is required"],
       trim: true,
     },
     excerpt: {
       type: String,
-      required: [true, "Excerpt is required"],
+      required: [false, "Excerpt is required"],
       trim: true,
       maxlength: [200, "Excerpt cannot exceed 200 characters"],
     },
     content: {
       type: String,
-      required: [true, "Content is required"],
+      required: [false, "Content is required"],
     },
     image: {
       type: String,
-      required: [true, "Image is required"],
+      required: [false, "Image is required"],
     },
     images: [
       {
@@ -40,7 +40,7 @@ const journalSchema = new mongoose.Schema(
     },
     date: {
       type: String,
-      required: [true, "Date is required"],
+      required: [false, "Date is required"],
     },
     featured: {
       type: Boolean,

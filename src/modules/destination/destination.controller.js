@@ -76,167 +76,132 @@ class DestinationController {
 
   // src/modules/destination/destination.controller.js
   // Replace the create method with this:
+static async create(req, res) {
+  try {
+    console.log("📝 Create Destination Request:");
+    console.log("Content-Type:", req.headers["content-type"]);
+    console.log("Body:", req.body);
+    console.log("File:", req.file ? " Image received" : " No image");
 
-  static async create(req, res) {
-    try {
-      console.log("📝 Create Destination Request:");
-      console.log("Content-Type:", req.headers["content-type"]);
-      console.log("Body:", req.body);
-      console.log("File:", req.file ? " Image received" : " No image");
+    // Check if it's bulk create
+    let isBulk = false;
+    let destinationsData = null;
 
-      // Check if it's bulk create
-      let isBulk = false;
-      let destinationsData = null;
+    // Check if we have destinations in the body
+    if (req.body.destinations && Array.isArray(req.body.destinations)) {
+      destinationsData = req.body.destinations;
+      isBulk = true;
+      console.log(
+        `🔄 Bulk create with ${destinationsData.length} destinations`,
+      );
+      console.log("Destinations data:", JSON.stringify(destinationsData, null, 2));
+    }
 
-      // Check if we have destinations in the body
-      if (req.body.destinations && Array.isArray(req.body.destinations)) {
-        destinationsData = req.body.destinations;
-        isBulk = true;
-        console.log(
-          `🔄 Bulk create with ${destinationsData.length} destinations`,
-        );
-      }
+    // Handle Bulk Create
+    if (isBulk && destinationsData) {
+      const createdDestinations = [];
+      const errors = [];
 
-      // Handle Bulk Create
-      if (isBulk && destinationsData) {
-        const createdDestinations = [];
-        const errors = [];
+      for (let i = 0; i < destinationsData.length; i++) {
+        try {
+          const data = destinationsData[i];
+          console.log(`Processing destination ${i + 1}:`, data);
 
-        for (let i = 0; i < destinationsData.length; i++) {
-          try {
-            const data = destinationsData[i];
-
-            // Validate required fields
-            const requiredFields = [
-              "country",
-              "state",
-              "city",
-              "category",
-              "price",
-              "description",
-            ];
-            const missingFields = requiredFields.filter((field) => {
-              const value = data[field];
-              return !value || value === "";
-            });
-
-            if (missingFields.length > 0) {
-              errors.push({
-                index: i,
-                message: `Missing fields: ${missingFields.join(", ")}`,
-              });
-              continue;
-            }
-
-            // Handle tags - ensure it's an array
-            if (data.tags) {
-              if (typeof data.tags === "string") {
-                data.tags = data.tags
-                  .split(",")
-                  .map((tag) => tag.trim())
-                  .filter(Boolean);
-              } else if (!Array.isArray(data.tags)) {
-                data.tags = [];
-              }
-            } else {
+          // Handle tags - ensure it's an array
+          if (data.tags) {
+            if (typeof data.tags === "string") {
+              data.tags = data.tags
+                .split(",")
+                .map((tag) => tag.trim())
+                .filter(Boolean);
+            } else if (!Array.isArray(data.tags)) {
               data.tags = [];
             }
+          } else {
+            data.tags = [];
+          }
 
-            // Handle featured - ensure it's boolean
-            data.featured = data.featured === true || data.featured === "true";
+          // Handle featured - ensure it's boolean
+          data.featured = data.featured === true || data.featured === "true";
 
-            // Create destination
+          // Remove empty fields to avoid validation issues
+          Object.keys(data).forEach(key => {
+            if (data[key] === "" || data[key] === null || data[key] === undefined) {
+              delete data[key];
+            }
+          });
+
+          // Only create if there's at least some data
+          if (Object.keys(data).length > 0 && data.country) {
             const destination = await DestinationService.create(data);
             createdDestinations.push(destination);
-          } catch (error) {
-            console.error(`Error creating destination ${i + 1}:`, error);
+          } else {
+            console.log(`Skipping destination ${i + 1} - no data or missing country`);
             errors.push({
               index: i,
-              message: error.message,
+              message: "No data provided or missing country field",
             });
           }
-        }
-
-        if (createdDestinations.length === 0) {
-          return res.status(400).json({
-            success: false,
-            message: "Failed to create any destinations",
-            errors: errors,
+        } catch (error) {
+          console.error(`Error creating destination ${i + 1}:`, error);
+          errors.push({
+            index: i,
+            message: error.message,
           });
         }
-
-        return res.status(201).json({
-          success: true,
-          message: `${createdDestinations.length} destinations created successfully`,
-          data: createdDestinations,
-          errors: errors.length > 0 ? errors : undefined,
-        });
       }
 
-      // Handle Single Create
-      console.log("📦 Processing single destination create");
-      const data = req.body;
-
-      // If image uploaded, add Cloudinary URL
-      if (req.file) {
-        data.image = req.file.path;
-      }
-
-      // Validate required fields
-      const requiredFields = [
-        "country",
-        "state",
-        "city",
-        "category",
-        "price",
-        "description",
-      ];
-      const missingFields = requiredFields.filter((field) => {
-        const value = data[field];
-        return !value || value === "";
-      });
-
-      if (missingFields.length > 0) {
-        if (req.file) {
-          try {
-            await cloudinary.uploader.destroy(req.file.filename);
-          } catch (err) {
-            console.error("Error deleting image:", err);
-          }
-        }
+      if (createdDestinations.length === 0) {
         return res.status(400).json({
           success: false,
-          message: `Missing required fields: ${missingFields.join(", ")}`,
+          message: "Failed to create any destinations. Please fill in at least one destination with required fields.",
+          errors: errors,
         });
       }
 
-      // Handle tags
-      if (data.tags) {
-        if (typeof data.tags === "string") {
-          data.tags = data.tags
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean);
-        } else if (!Array.isArray(data.tags)) {
-          data.tags = [];
-        }
-      } else {
+      return res.status(201).json({
+        success: true,
+        message: `${createdDestinations.length} destinations created successfully`,
+        data: createdDestinations,
+        errors: errors.length > 0 ? errors : undefined,
+      });
+    }
+
+    // Handle Single Create
+    console.log("📦 Processing single destination create");
+    const data = req.body;
+
+    // If image uploaded, add Cloudinary URL
+    if (req.file) {
+      data.image = req.file.path;
+    }
+
+    // Handle tags
+    if (data.tags) {
+      if (typeof data.tags === "string") {
+        data.tags = data.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean);
+      } else if (!Array.isArray(data.tags)) {
         data.tags = [];
       }
+    } else {
+      data.tags = [];
+    }
 
-      // Handle featured
-      data.featured = data.featured === true || data.featured === "true";
+    // Handle featured
+    data.featured = data.featured === true || data.featured === "true";
 
-      const destination = await DestinationService.create(data);
+    // Remove empty fields
+    Object.keys(data).forEach(key => {
+      if (data[key] === "" || data[key] === null || data[key] === undefined) {
+        delete data[key];
+      }
+    });
 
-      res.status(201).json({
-        success: true,
-        message: "Destination created successfully",
-        data: destination,
-      });
-    } catch (error) {
-      console.error("❌ Create Destination Error:", error);
-
+    // Only create if there's at least some data
+    if (Object.keys(data).length === 0 || !data.country) {
       if (req.file) {
         try {
           await cloudinary.uploader.destroy(req.file.filename);
@@ -244,13 +209,36 @@ class DestinationController {
           console.error("Error deleting image:", err);
         }
       }
-
-      res.status(500).json({
+      return res.status(400).json({
         success: false,
-        message: error.message || "Failed to create destination",
+        message: "Please provide at least a country to create a destination",
       });
     }
+
+    const destination = await DestinationService.create(data);
+
+    res.status(201).json({
+      success: true,
+      message: "Destination created successfully",
+      data: destination,
+    });
+  } catch (error) {
+    console.error("❌ Create Destination Error:", error);
+
+    if (req.file) {
+      try {
+        await cloudinary.uploader.destroy(req.file.filename);
+      } catch (err) {
+        console.error("Error deleting image:", err);
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create destination",
+    });
   }
+}
   // Update destination with Country, State, City
   static async update(req, res) {
     try {

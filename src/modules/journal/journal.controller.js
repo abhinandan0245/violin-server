@@ -78,9 +78,205 @@ class JournalController {
   }
 
   // Create item (Admin)
-  static async create(req, res) {
+  // Create item (Admin)
+ // Create item (Admin)
+static async create(req, res) {
+  try {
+    const data = req.body;
+
+    console.log("📝 Create Journal Item Request:");
+    console.log("Body:", data);
+    console.log("File:", req.file ? " Image received" : " No image");
+
+    // If image uploaded, add Cloudinary URL
+    if (req.file) {
+      data.image = req.file.path;
+    }
+
+    // If multiple images uploaded
+    if (req.files && req.files.length > 0) {
+      data.images = req.files.map((file) => file.path);
+      if (!data.image && req.files.length > 0) {
+        data.image = req.files[0].path;
+      }
+    }
+
+    // Remove empty fields
+    Object.keys(data).forEach(key => {
+      if (data[key] === "" || data[key] === null || data[key] === undefined) {
+        delete data[key];
+      }
+    });
+
+    // Check if there's any data to save
+    if (Object.keys(data).length === 0) {
+      if (req.file) {
+        try {
+          await cloudinary.uploader.destroy(req.file.filename);
+        } catch (err) {
+          console.error("Error deleting image:", err);
+        }
+      }
+      return res.status(400).json({
+        success: false,
+        message: "Please provide at least some data to create a journal item",
+      });
+    }
+
+    // Generate slug from title if title exists and slug not provided
+    if (data.title && !data.slug) {
+      data.slug = data.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      
+      // Make slug unique if it already exists
+      const existingItem = await JournalService.findOne({ slug: data.slug });
+      if (existingItem) {
+        data.slug = `${data.slug}-${Date.now()}`;
+      }
+    } else if (data.slug) {
+      // If slug is provided, make it unique
+      const existingItem = await JournalService.findOne({ slug: data.slug });
+      if (existingItem) {
+        data.slug = `${data.slug}-${Date.now()}`;
+      }
+    }
+
+    const item = await JournalService.create(data);
+
+    res.status(201).json({
+      success: true,
+      message: "Item created successfully",
+      data: item,
+    });
+  } catch (error) {
+    console.error("❌ Error in create:", error);
+
+    if (req.file) {
+      try {
+        await cloudinary.uploader.destroy(req.file.filename);
+      } catch (err) {
+        console.error("Error deleting image:", err);
+      }
+    }
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        try {
+          await cloudinary.uploader.destroy(file.filename);
+        } catch (err) {
+          console.error("Error deleting image:", err);
+        }
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to create journal item",
+    });
+  }
+}
+
+// Update item (Admin)
+static async update(req, res) {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    console.log("📝 Update Journal Item Request:");
+    console.log("ID:", id);
+    console.log("Body:", data);
+    console.log("File:", req.file ? " Image received" : " No image");
+
+    // If image uploaded, add Cloudinary URL
+    if (req.file) {
+      data.image = req.file.path;
+    }
+
+    // If multiple images uploaded
+    if (req.files && req.files.length > 0) {
+      data.images = req.files.map((file) => file.path);
+      if (!data.image && req.files.length > 0) {
+        data.image = req.files[0].path;
+      }
+    }
+
+    // Remove empty fields
+    Object.keys(data).forEach(key => {
+      if (data[key] === "" || data[key] === null || data[key] === undefined) {
+        delete data[key];
+      }
+    });
+
+    // If no data to update
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide at least some data to update",
+      });
+    }
+
+    // Update slug if title is updated
+    if (data.title && !data.slug) {
+      data.slug = data.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      
+      // Make slug unique if it already exists
+      const existingItem = await JournalService.findOne({ 
+        slug: data.slug,
+        _id: { $ne: id } // Exclude current item
+      });
+      if (existingItem) {
+        data.slug = `${data.slug}-${Date.now()}`;
+      }
+    }
+
+    const item = await JournalService.update(id, data);
+
+    res.status(200).json({
+      success: true,
+      message: "Item updated successfully",
+      data: item,
+    });
+  } catch (error) {
+    console.error("❌ Error in update:", error);
+
+    if (req.file) {
+      try {
+        await cloudinary.uploader.destroy(req.file.filename);
+      } catch (err) {
+        console.error("Error deleting image:", err);
+      }
+    }
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        try {
+          await cloudinary.uploader.destroy(file.filename);
+        } catch (err) {
+          console.error("Error deleting image:", err);
+        }
+      }
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update journal item",
+    });
+  }
+}
+
+  // Update item (Admin)
+  static async update(req, res) {
     try {
+      const { id } = req.params;
       const data = req.body;
+
+      console.log("📝 Update Journal Item Request:");
+      console.log("ID:", id);
+      console.log("Body:", data);
+      console.log("File:", req.file ? " Image received" : " No image");
 
       // If image uploaded, add Cloudinary URL
       if (req.file) {
@@ -95,55 +291,51 @@ class JournalController {
         }
       }
 
-      // Validate required fields
-      const requiredFields = [
-        "title",
-        "category",
-        "excerpt",
-        "content",
-        "date",
-      ];
-      const missingFields = requiredFields.filter((field) => !data[field]);
-
-      if (missingFields.length > 0) {
-        if (req.file) {
-          await cloudinary.uploader.destroy(req.file.filename);
+      // Remove empty fields
+      Object.keys(data).forEach((key) => {
+        if (data[key] === "" || data[key] === null || data[key] === undefined) {
+          delete data[key];
         }
+      });
+
+      // If no data to update
+      if (Object.keys(data).length === 0) {
         return res.status(400).json({
           success: false,
-          message: `Missing required fields: ${missingFields.join(", ")}`,
+          message: "Please provide at least some data to update",
         });
       }
 
-      if (!data.image) {
-        return res.status(400).json({
-          success: false,
-          message: "Image is required",
-        });
-      }
+      const item = await JournalService.update(id, data);
 
-      const item = await JournalService.create(data);
-
-      res.status(201).json({
+      res.status(200).json({
         success: true,
-        message: "Item created successfully",
+        message: "Item updated successfully",
         data: item,
       });
     } catch (error) {
-      console.error("Error in create:", error);
+      console.error("❌ Error in update:", error);
 
       if (req.file) {
-        await cloudinary.uploader.destroy(req.file.filename);
+        try {
+          await cloudinary.uploader.destroy(req.file.filename);
+        } catch (err) {
+          console.error("Error deleting image:", err);
+        }
       }
       if (req.files && req.files.length > 0) {
         for (const file of req.files) {
-          await cloudinary.uploader.destroy(file.filename);
+          try {
+            await cloudinary.uploader.destroy(file.filename);
+          } catch (err) {
+            console.error("Error deleting image:", err);
+          }
         }
       }
 
       res.status(500).json({
         success: false,
-        message: error.message,
+        message: error.message || "Failed to update journal item",
       });
     }
   }

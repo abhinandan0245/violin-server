@@ -4,34 +4,34 @@ const portfolioSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: [true, "Title is required"],
+      required: [false, "Title is required"],
       trim: true,
     },
     location: {
       type: String,
-      required: [true, "Location is required"],
+      required: [false, "Location is required"],
       trim: true,
     },
     category: {
       type: String,
-      required: [true, "Category is required"],
+      required: [false, "Category is required"],
       // Enum removed - now any string can be added
     },
     image: {
       type: String,
-      required: [true, "Image is required"],
+      required: [false, "Image is required"],
     },
     date: {
       type: String,
-      required: [true, "Date is required"],
+      required: [false, "Date is required"],
     },
     guests: {
       type: Number,
-      required: [true, "Number of guests is required"],
+      required: [false, "Number of guests is required"],
     },
     description: {
       type: String,
-      required: [true, "Description is required"],
+      required: [false, "Description is required"],
       maxlength: [500, "Description cannot exceed 500 characters"],
     },
     highlights: [
