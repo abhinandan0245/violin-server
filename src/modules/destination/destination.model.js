@@ -35,7 +35,6 @@ const destinationSchema = new mongoose.Schema(
     description: {
       type: String,
       required: [false, "Description is required"],
-      maxlength: [100, "Description cannot exceed 100 characters"],
     },
     tags: [
       {
