@@ -13,13 +13,20 @@ const venueSchema = new mongoose.Schema(
       required: [false, "Location is required"],
       trim: true,
     },
+    // ✅ ADD COUNTRY FIELD
+    country: {
+      type: String,
+      required: false,
+      trim: true,
+      default: "",
+    },
     category: {
       type: String,
       required: [false, "Category is required"],
     },
     image: {
       type: String,
-      required: false, // ✅ Made optional
+      required: false,
       default: null,
     },
     capacity: {

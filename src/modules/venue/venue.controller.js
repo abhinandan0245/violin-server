@@ -12,6 +12,16 @@ class VenueController {
     }
   }
 
+  // ✅ ADD GET COUNTRIES ENDPOINT
+  static async getCountries(req, res) {
+    try {
+      const countries = await VenueService.getCountries();
+      res.status(200).json({ success: true, data: countries });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
   static async getFeatured(req, res) {
     try {
       const venues = await VenueService.getFeatured();
@@ -36,8 +46,6 @@ class VenueController {
     }
   }
 
-  // ✅ CREATE - Multiple Images (min 1, max 5)
-  // In the create method, remove the required fields validation
   static async create(req, res) {
     try {
       let data = req.body;
@@ -50,7 +58,6 @@ class VenueController {
         }
       }
 
-      // ✅ req.files is now an OBJECT: { image: [file], images: [file, file, ...] }
       const mainImageFile = req.files?.image?.[0];
       const galleryFiles = req.files?.images || [];
 
@@ -65,6 +72,7 @@ class VenueController {
         `✅ Main image: ${mainImageFile ? "yes" : "no"}, Gallery: ${galleryFiles.length}`,
       );
 
+      // Parse amenities
       if (data.amenities && typeof data.amenities === "string") {
         data.amenities = data.amenities
           .split(",")
@@ -72,7 +80,13 @@ class VenueController {
           .filter(Boolean);
       }
 
+      // Parse featured
       data.featured = data.featured === "true" || data.featured === true;
+
+      // ✅ ENSURE COUNTRY IS SET
+      if (!data.country) {
+        data.country = "";
+      }
 
       const venue = await VenueService.create(data);
 
@@ -84,7 +98,6 @@ class VenueController {
     } catch (error) {
       console.error("❌ Create Venue Error:", error);
 
-      // Cleanup on error — also needs the new shape
       const allFiles = [
         ...(req.files?.image || []),
         ...(req.files?.images || []),
@@ -104,7 +117,6 @@ class VenueController {
     }
   }
 
-  // ✅ UPDATE - Multiple Images
   static async update(req, res) {
     try {
       const existingVenue = await VenueService.getById(req.params.id);
@@ -149,7 +161,7 @@ class VenueController {
         data.image = existingVenue.image;
       }
 
-      // Gallery: new files append to existing, unless frontend explicitly sent existingImages[]
+      // Gallery: new files append to existing
       if (galleryFiles.length > 0) {
         const currentImages = existingVenue.images || [];
         data.images = [...currentImages, ...galleryFiles.map((f) => f.path)];
@@ -157,6 +169,7 @@ class VenueController {
         data.images = existingVenue.images || [];
       }
 
+      // Parse amenities
       if (data.amenities && typeof data.amenities === "string") {
         data.amenities = data.amenities
           .split(",")
@@ -164,7 +177,13 @@ class VenueController {
           .filter(Boolean);
       }
 
+      // Parse featured
       data.featured = data.featured === "true" || data.featured === true;
+
+      // ✅ KEEP EXISTING COUNTRY IF NOT PROVIDED
+      if (!data.country) {
+        data.country = existingVenue.country || "";
+      }
 
       const venue = await VenueService.update(req.params.id, data);
 
@@ -195,7 +214,6 @@ class VenueController {
     }
   }
 
-  // Delete Venue
   static async delete(req, res) {
     try {
       const venue = await VenueService.getById(req.params.id);
@@ -207,13 +225,11 @@ class VenueController {
         });
       }
 
-      // Delete main image from Cloudinary
       if (venue.image) {
         const publicId = venue.image.split("/").pop().split(".")[0];
         await cloudinary.uploader.destroy(`violin-events/venues/${publicId}`);
       }
 
-      // Delete all images from Cloudinary
       if (venue.images && venue.images.length > 0) {
         for (const img of venue.images) {
           const publicId = img.split("/").pop().split(".")[0];

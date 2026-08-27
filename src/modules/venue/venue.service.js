@@ -3,11 +3,34 @@ const Venue = require("./venue.model");
 
 class VenueService {
   static async getAll(query = {}) {
-    const { featured, category, limit = 100, page = 1 } = query;
+    const {
+      featured,
+      category,
+      country,
+      search,
+      limit = 100,
+      page = 1,
+    } = query;
     const filter = {};
 
+    // Apply filters
     if (featured) filter.featured = featured === "true";
     if (category) filter.category = category;
+
+    // ✅ ADD COUNTRY FILTER
+    if (country) {
+      filter.country = { $regex: country, $options: "i" };
+    }
+
+    // ✅ ADD SEARCH BY COUNTRY AND LOCATION
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { location: { $regex: search, $options: "i" } },
+        { country: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } },
+      ];
+    }
 
     const skip = (page - 1) * limit;
 
@@ -49,6 +72,12 @@ class VenueService {
 
   static async delete(id) {
     return await Venue.findByIdAndDelete(id);
+  }
+
+  // ✅ ADD METHOD TO GET ALL COUNTRIES (for filter dropdown)
+  static async getCountries() {
+    const countries = await Venue.distinct("country");
+    return countries.filter((country) => country && country.trim() !== "");
   }
 }
 
