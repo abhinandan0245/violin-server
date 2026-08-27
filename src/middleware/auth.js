@@ -13,29 +13,34 @@ const protect = async (req, res, next) => {
     }
 
     if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "Not authorized, no token",
-      });
+      return res
+        .status(401)
+        .json({ success: false, message: "Not authorized, no token" });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const admin = await Admin.findById(decoded.id).select("-password");
 
     if (!admin) {
-      return res.status(401).json({
-        success: false,
-        message: "Not authorized",
-      });
+      return res
+        .status(401)
+        .json({ success: false, message: "Not authorized, admin not found" });
     }
 
     req.admin = admin;
     next();
   } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: "Not authorized, token failed",
-    });
+    console.error("❌ Auth error:", error.name, error.message); // <-- add this
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired, please log in again",
+        code: "TOKEN_EXPIRED",
+      });
+    }
+    return res
+      .status(401)
+      .json({ success: false, message: "Not authorized, token failed" });
   }
 };
 

@@ -59,6 +59,11 @@ class JournalService {
     return item;
   }
 
+  // ✅ ADD THIS METHOD - Find one item by filter
+  static async findOne(filter) {
+    return await Journal.findOne(filter);
+  }
+
   // Create item
   static async create(data) {
     return await Journal.create(data);
