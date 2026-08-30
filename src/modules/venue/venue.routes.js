@@ -7,6 +7,9 @@ const upload = require("../../config/multer");
 // Public routes
 router.get("/", VenueController.getAll);
 router.get("/countries", VenueController.getCountries);
+router.get("/states", VenueController.getStates);
+router.get("/cities", VenueController.getCities);
+router.get("/location-filters", VenueController.getLocationFilters);
 router.get("/featured", VenueController.getFeatured);
 router.get("/:id", VenueController.getById);
 

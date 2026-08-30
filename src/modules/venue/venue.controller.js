@@ -12,11 +12,45 @@ class VenueController {
     }
   }
 
-  // ✅ ADD GET COUNTRIES ENDPOINT
+  // ✅ GET COUNTRIES ENDPOINT
   static async getCountries(req, res) {
     try {
       const countries = await VenueService.getCountries();
       res.status(200).json({ success: true, data: countries });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  // ✅ GET STATES ENDPOINT (optionally scoped by ?country=)
+  static async getStates(req, res) {
+    try {
+      const { country } = req.query;
+      const states = await VenueService.getStates(country);
+      res.status(200).json({ success: true, data: states });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  // ✅ GET CITIES ENDPOINT (optionally scoped by ?country= and ?state=)
+  static async getCities(req, res) {
+    try {
+      const { country, state } = req.query;
+      const cities = await VenueService.getCities(country, state);
+      res.status(200).json({ success: true, data: cities });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  // ✅ GET COMBINED FILTER OPTIONS (country + state + city in one call)
+  // Use this if the filter box wants everything in a single request
+  // instead of calling /countries, /states, /cities separately.
+  static async getLocationFilters(req, res) {
+    try {
+      const filters = await VenueService.getLocationFilters();
+      res.status(200).json({ success: true, data: filters });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -83,10 +117,13 @@ class VenueController {
       // Parse featured
       data.featured = data.featured === "true" || data.featured === true;
 
-      // ✅ ENSURE COUNTRY IS SET
-      if (!data.country) {
-        data.country = "";
-      }
+      // ✅ ENSURE COUNTRY / STATE / CITY ARE SET
+      if (!data.country) data.country = "";
+      if (!data.state) data.state = "";
+      if (!data.city) data.city = "";
+
+      // ✅ location field no longer used — drop it if an old client still sends it
+      delete data.location;
 
       const venue = await VenueService.create(data);
 
@@ -180,10 +217,13 @@ class VenueController {
       // Parse featured
       data.featured = data.featured === "true" || data.featured === true;
 
-      // ✅ KEEP EXISTING COUNTRY IF NOT PROVIDED
-      if (!data.country) {
-        data.country = existingVenue.country || "";
-      }
+      // ✅ KEEP EXISTING COUNTRY / STATE / CITY IF NOT PROVIDED
+      if (!data.country) data.country = existingVenue.country || "";
+      if (!data.state) data.state = existingVenue.state || "";
+      if (!data.city) data.city = existingVenue.city || "";
+
+      // ✅ location field no longer used — drop it if an old client still sends it
+      delete data.location;
 
       const venue = await VenueService.update(req.params.id, data);
 

@@ -8,13 +8,22 @@ const venueSchema = new mongoose.Schema(
       trim: true,
       unique: true,
     },
-    location: {
-      type: String,
-      required: [false, "Location is required"],
-      trim: true,
-    },
-    // ✅ ADD COUNTRY FIELD
+    // ✅ REMOVED "location" — replaced by country / state / city below
     country: {
+      type: String,
+      required: false,
+      trim: true,
+      default: "",
+    },
+    // ✅ ADD STATE FIELD
+    state: {
+      type: String,
+      required: false,
+      trim: true,
+      default: "",
+    },
+    // ✅ ADD CITY FIELD
+    city: {
       type: String,
       required: false,
       trim: true,
