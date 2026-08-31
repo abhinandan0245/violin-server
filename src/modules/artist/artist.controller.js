@@ -2,7 +2,7 @@ const Artist = require("./artist.model");
 const ArtistCategory = require("../artistCategory/artistCategory.model");
 
 class ArtistController {
-  // ✅ Get all artists
+  //  Get all artists
   static async getAll(req, res) {
     try {
       const {

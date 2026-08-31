@@ -15,7 +15,6 @@ class ContactController {
   // Get all inquiries (Admin only)
   static async getAll(req, res) {
     try {
-      // ✅ Log what we're receiving
       console.log("📥 GET /contacts - Query:", req.query);
 
       const result = await ContactService.getAll(req.query);
@@ -189,7 +188,11 @@ class ContactController {
           <p><strong>Email:</strong> ${inquiry.email}</p>
           <p><strong>Phone:</strong> ${inquiry.phone}</p>
           ${inquiry.guests ? `<p><strong>Guests:</strong> ${inquiry.guests}</p>` : ""}
-          ${inquiry.destination ? `<p><strong>Destination:</strong> ${inquiry.destination}</p>` : ""}
+          ${inquiry.venueName ? `<p><strong>Venue Name:</strong> ${inquiry.venueName}</p>` : ""}
+          ${inquiry.country ? `<p><strong>Country:</strong> ${inquiry.country}</p>` : ""}
+          ${inquiry.state ? `<p><strong>State:</strong> ${inquiry.state}</p>` : ""}
+          ${inquiry.city ? `<p><strong>City:</strong> ${inquiry.city}</p>` : ""}
+          ${inquiry.category ? `<p><strong>Category:</strong> ${inquiry.category}</p>` : ""}
           ${inquiry.celebrationType ? `<p><strong>Celebration Type:</strong> ${inquiry.celebrationType}</p>` : ""}
           <p><strong>Message:</strong></p>
           <p>${inquiry.message}</p>
@@ -203,7 +206,7 @@ class ContactController {
       console.log("✅ Admin email sent successfully");
     } catch (error) {
       console.error("❌ Error sending admin email:", error);
-      throw error; // Re-throw to be caught by the caller
+      throw error;
     }
   }
 
@@ -223,7 +226,11 @@ class ContactController {
           <p><strong>Email:</strong> ${inquiry.email}</p>
           <p><strong>Phone:</strong> ${inquiry.phone}</p>
           ${inquiry.guests ? `<p><strong>Guests:</strong> ${inquiry.guests}</p>` : ""}
-          ${inquiry.destination ? `<p><strong>Destination:</strong> ${inquiry.destination}</p>` : ""}
+          ${inquiry.venueName ? `<p><strong>Venue Name:</strong> ${inquiry.venueName}</p>` : ""}
+          ${inquiry.country ? `<p><strong>Country:</strong> ${inquiry.country}</p>` : ""}
+          ${inquiry.state ? `<p><strong>State:</strong> ${inquiry.state}</p>` : ""}
+          ${inquiry.city ? `<p><strong>City:</strong> ${inquiry.city}</p>` : ""}
+          ${inquiry.category ? `<p><strong>Category:</strong> ${inquiry.category}</p>` : ""}
           ${inquiry.celebrationType ? `<p><strong>Celebration Type:</strong> ${inquiry.celebrationType}</p>` : ""}
           <p><strong>Message:</strong></p>
           <p>${inquiry.message}</p>
@@ -237,7 +244,7 @@ class ContactController {
       console.log("✅ User auto-reply email sent successfully");
     } catch (error) {
       console.error("❌ Error sending user email:", error);
-      throw error; // Re-throw to be caught by the caller
+      throw error;
     }
   }
 }

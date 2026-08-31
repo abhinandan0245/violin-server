@@ -24,9 +24,31 @@ const contactSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    destination: {
+    // ✅ REMOVED "destination" — replaced by venueName / country / state / city / category below
+    venueName: {
       type: String,
       trim: true,
+      default: "",
+    },
+    country: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    state: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    city: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    category: {
+      type: String,
+      trim: true,
+      default: "",
     },
     celebrationType: {
       type: String,
