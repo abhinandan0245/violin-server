@@ -24,7 +24,7 @@ const contactSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    // ✅ REMOVED "destination" — replaced by venueName / country / state / city / category below
+    // REMOVED "destination" — replaced by venueName / country / state / city / category below
     venueName: {
       type: String,
       trim: true,

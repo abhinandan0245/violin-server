@@ -42,7 +42,21 @@ try {
     params: (req, file) => {
       return {
         folder: getFolder(req),
-        allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+        allowed_formats: [
+          "jpg",
+          "jpeg",
+          "png",
+          "gif",
+          "webp",
+          "avif",
+          "svg",
+          "heic",
+          "heif",
+          "bmp",
+          "tiff",
+          "tif",
+          "ico",
+        ],
         transformation: getTransformation(req),
       };
     },
@@ -87,7 +101,8 @@ try {
 
 // File filter
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp/;
+  const allowedTypes =
+    /jpeg|jpg|png|gif|webp|avif|svg|heic|heif|bmp|tiff|tif|ico/;
   const extname = allowedTypes.test(
     path.extname(file.originalname).toLowerCase(),
   );
@@ -96,7 +111,11 @@ const fileFilter = (req, file, cb) => {
   if (mimetype && extname) {
     return cb(null, true);
   } else {
-    cb(new Error("Only image files are allowed (jpeg, jpg, png, gif, webp)"));
+    cb(
+      new Error(
+        "Only image files are allowed (jpg, jpeg, png, gif, webp, avif, svg, heic, heif, bmp, tiff, tif, ico)",
+      ),
+    );
   }
 };
 
