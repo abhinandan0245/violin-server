@@ -1,10 +1,9 @@
 // src/modules/destination/destination.model.js
 const mongoose = require("mongoose");
 
+// src/modules/destination/destination.model.js
 const destinationSchema = new mongoose.Schema(
   {
-    // ✅ Remove 'name' field
-    // ✅ Add country, state, city
     country: {
       type: String,
       required: [false, "Country is required"],
@@ -24,9 +23,18 @@ const destinationSchema = new mongoose.Schema(
       type: String,
       required: [false, "Category is required"],
     },
+    tagline: {
+      type: String,
+      required: [false, "Tagline is required"],
+      trim: true,
+    },
     image: {
       type: String,
       required: [false, "Image is required"],
+    },
+    bannerImage: {
+      type: String,
+      required: [false, "Banner image is required"],
     },
     price: {
       type: String,
@@ -50,11 +58,6 @@ const destinationSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    images: [
-      {
-        type: String,
-      },
-    ],
   },
   {
     timestamps: true,

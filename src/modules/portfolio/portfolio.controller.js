@@ -22,8 +22,24 @@ class PortfolioController {
 
   static async getVideos(req, res) {
     try {
-      const { page = 1, limit = 3 } = req.query;
+      const { page = 1, limit = 9 } = req.query;
       const result = await PortfolioService.getVideos({ page, limit });
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  static async getImages(req, res) {
+    try {
+      const { page = 1, limit = 9 } = req.query;
+      const result = await PortfolioService.getImages({ page, limit });
       res.status(200).json({
         success: true,
         data: result,
@@ -51,303 +67,207 @@ class PortfolioController {
     }
   }
 
-  // ✅ Create with multiple images - FIXED
-// portfolio.controller.js
-static async create(req, res) {
-  try {
-    const data = req.body;
-    const files = req.files || {};
+  static async create(req, res) {
+    try {
+      const data = req.body;
+      const files = req.files || {};
 
-    console.log("Files received:", Object.keys(files));
+      console.log("Files received:", Object.keys(files));
+      console.log("Portfolio Type:", data.portfolioType);
 
-    // Handle main image
-    if (files.image && files.image.length > 0) {
-      data.image = files.image[0].path;
-    }
+      // Handle image-based portfolio
+      if (data.portfolioType === 'image' || !data.portfolioType) {
+        // Handle main image
+        if (files.image && files.image.length > 0) {
+          data.image = files.image[0].path;
+        }
 
-    // Handle additional images
-    if (files.images && files.images.length > 0) {
-      data.images = files.images.map((file) => file.path);
-      if (!data.image && files.images.length > 0) {
-        data.image = files.images[0].path;
-      }
-    }
+        // Handle additional images
+        if (files.images && files.images.length > 0) {
+          data.images = files.images.map((file) => file.path);
+          if (!data.image && files.images.length > 0) {
+            data.image = files.images[0].path;
+          }
+        }
 
-    // REMOVED: Image validation - now optional
-    // if (!data.image) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "Please upload at least one image",
-    //   });
-    // }
-
-    // Parse highlights if sent as JSON string
-    if (data.highlights && typeof data.highlights === "string") {
-      try {
-        data.highlights = JSON.parse(data.highlights);
-      } catch (e) {
-        data.highlights = data.highlights
-          .split(",")
-          .map((h) => h.trim())
-          .filter(Boolean);
-      }
-    }
-
-    const item = await PortfolioService.create(data);
-
-    res.status(201).json({
-      success: true,
-      message: "Portfolio item created successfully",
-      data: item,
-    });
-  } catch (error) {
-    console.error("Create error:", error);
-
-    // Delete uploaded images on error
-    const files = req.files || {};
-
-    if (files.image && files.image.length > 0) {
-      try {
-        const publicId =
-          files.image[0].filename ||
-          files.image[0].path.split("/").pop().split(".")[0];
-        await cloudinary.uploader.destroy(publicId);
-      } catch (e) {}
-    }
-    if (files.images && files.images.length > 0) {
-      for (const file of files.images) {
-        try {
-          const publicId =
-            file.filename || file.path.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(publicId);
-        } catch (e) {}
-      }
-    }
-
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
-}
-
-static async update(req, res) {
-  try {
-    const { id } = req.params;
-    const data = req.body;
-    const files = req.files || {};
-
-    console.log("Files received:", Object.keys(files));
-
-    // Handle main image
-    if (files.image && files.image.length > 0) {
-      data.image = files.image[0].path;
-    }
-
-    // Handle additional images
-    if (files.images && files.images.length > 0) {
-      const newImages = files.images.map((file) => file.path);
-      
-      // Parse existing images from request
-      let existingImages = [];
-      if (data.existingImages) {
-        try {
-          existingImages = typeof data.existingImages === 'string' 
-            ? JSON.parse(data.existingImages) 
-            : data.existingImages;
-        } catch (e) {
-          existingImages = [];
+        // Handle guests
+        if (data.guests) {
+          data.guests = parseInt(data.guests);
         }
       }
 
-      // Combine existing images with new ones
-      data.images = [...existingImages, ...newImages];
-      
-      if (!data.image && data.images.length > 0) {
-        data.image = data.images[0];
+      // Handle video-based portfolio
+      if (data.portfolioType === 'video') {
+        // Video thumbnail upload
+        if (files.videoThumbnail && files.videoThumbnail.length > 0) {
+          data.videoThumbnail = files.videoThumbnail[0].path;
+        }
+
+        // Clear image fields for video type
+        data.image = undefined;
+        data.images = undefined;
+        data.guests = undefined;
       }
-    }
 
-    // Parse highlights if sent as JSON string
-    if (data.highlights && typeof data.highlights === "string") {
-      try {
-        data.highlights = JSON.parse(data.highlights);
-      } catch (e) {
-        data.highlights = data.highlights
-          .split(",")
-          .map((h) => h.trim())
-          .filter(Boolean);
-      }
-    }
-
-    // Handle featured boolean
-    if (data.featured !== undefined) {
-      data.featured = data.featured === "true" || data.featured === true;
-    }
-
-    const item = await PortfolioService.update(id, data);
-
-    res.status(200).json({
-      success: true,
-      message: "Portfolio item updated successfully",
-      data: item,
-    });
-  } catch (error) {
-    console.error("Update error:", error);
-
-    // Delete uploaded images on error
-    const files = req.files || {};
-    if (files.image && files.image.length > 0) {
-      try {
-        const publicId =
-          files.image[0].filename ||
-          files.image[0].path.split("/").pop().split(".")[0];
-        await cloudinary.uploader.destroy(publicId);
-      } catch (e) {}
-    }
-    if (files.images && files.images.length > 0) {
-      for (const file of files.images) {
+      // Parse highlights if sent as JSON string
+      if (data.highlights && typeof data.highlights === "string") {
         try {
-          const publicId =
-            file.filename || file.path.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(publicId);
-        } catch (e) {}
+          data.highlights = JSON.parse(data.highlights);
+        } catch (e) {
+          data.highlights = data.highlights
+            .split(",")
+            .map((h) => h.trim())
+            .filter(Boolean);
+        }
       }
+
+      const item = await PortfolioService.create(data);
+
+      res.status(201).json({
+        success: true,
+        message: "Portfolio item created successfully",
+        data: item,
+      });
+    } catch (error) {
+      console.error("Create error:", error);
+
+      // Delete uploaded images on error
+      const files = req.files || {};
+      
+      const deleteFiles = async (fileArray) => {
+        if (fileArray && fileArray.length > 0) {
+          for (const file of fileArray) {
+            try {
+              const publicId = file.filename || file.path.split("/").pop().split(".")[0];
+              await cloudinary.uploader.destroy(publicId);
+            } catch (e) {}
+          }
+        }
+      };
+
+      await deleteFiles(files.image);
+      await deleteFiles(files.images);
+      await deleteFiles(files.videoThumbnail);
+
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
     }
-
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
   }
-}
 
-  // ✅ Update with multiple images - FIXED
-  // static async update(req, res) {
-  //   try {
-  //     const existingItem = await PortfolioService.getById(req.params.id);
+  static async update(req, res) {
+    try {
+      const { id } = req.params;
+      const data = req.body;
+      const files = req.files || {};
 
-  //     if (!existingItem) {
-  //       return res.status(404).json({
-  //         success: false,
-  //         message: "Portfolio item not found",
-  //       });
-  //     }
+      console.log("Files received:", Object.keys(files));
+      console.log("Portfolio Type:", data.portfolioType);
 
-  //     const data = req.body;
-  //     const files = req.files || {};
+      const existingItem = await PortfolioService.getById(id);
+      if (!existingItem) {
+        return res.status(404).json({
+          success: false,
+          message: "Portfolio item not found",
+        });
+      }
 
-  //     console.log("Files received:", Object.keys(files));
+      // Handle image-based portfolio
+      if (data.portfolioType === 'image' || !data.portfolioType) {
+        // Handle main image
+        if (files.image && files.image.length > 0) {
+          // Delete old main image from Cloudinary
+          if (existingItem.image) {
+            try {
+              const publicId = existingItem.image.split("/").pop().split(".")[0];
+              await cloudinary.uploader.destroy(publicId);
+            } catch (e) {}
+          }
+          data.image = files.image[0].path;
+        }
 
-  //     // Handle main image update
-  //     if (files.image && files.image.length > 0) {
-  //       // Delete old main image from Cloudinary
-  //       if (existingItem.image) {
-  //         try {
-  //           const publicId = existingItem.image.split("/").pop().split(".")[0];
-  //           await cloudinary.uploader.destroy(
-  //             `violin-events/portfolio/${publicId}`,
-  //           );
-  //         } catch (e) {}
-  //       }
-  //       data.image = files.image[0].path;
-  //     }
+        // Handle additional images
+        if (files.images && files.images.length > 0) {
+          const newImages = files.images.map((file) => file.path);
+          
+          let existingImages = [];
+          if (data.existingImages) {
+            try {
+              existingImages = typeof data.existingImages === 'string' 
+                ? JSON.parse(data.existingImages) 
+                : data.existingImages;
+            } catch (e) {
+              existingImages = [];
+            }
+          }
 
-  //     // Handle additional images
-  //     if (files.images && files.images.length > 0) {
-  //       // Parse existing images from body
-  //       let existingImages = existingItem.images || [];
-  //       if (data.existingImages && typeof data.existingImages === "string") {
-  //         try {
-  //           existingImages = JSON.parse(data.existingImages);
-  //         } catch (e) {
-  //           existingImages = existingItem.images || [];
-  //         }
-  //       }
+          data.images = [...existingImages, ...newImages];
+          
+          if (!data.image && data.images.length > 0) {
+            data.image = data.images[0];
+          }
+        }
 
-  //       // Delete images that are no longer needed
-  //       const imagesToDelete = (existingItem.images || []).filter(
-  //         (img) => !existingImages.includes(img),
-  //       );
+        // Handle guests
+        if (data.guests) {
+          data.guests = parseInt(data.guests);
+        }
 
-  //       for (const img of imagesToDelete) {
-  //         try {
-  //           const publicId = img.split("/").pop().split(".")[0];
-  //           await cloudinary.uploader.destroy(
-  //             `violin-events/portfolio/${publicId}`,
-  //           );
-  //         } catch (e) {}
-  //       }
+        // Clear video fields
+        data.videoUrl = undefined;
+        data.videoThumbnail = undefined;
+        data.videoDuration = undefined;
+        data.videoViews = undefined;
+      }
 
-  //       // Combine existing + new images
-  //       const newImagePaths = files.images.map((file) => file.path);
-  //       data.images = [...existingImages, ...newImagePaths];
+      // Handle video-based portfolio
+      if (data.portfolioType === 'video') {
+        // Video thumbnail upload
+        if (files.videoThumbnail && files.videoThumbnail.length > 0) {
+          // Delete old thumbnail from Cloudinary
+          if (existingItem.videoThumbnail) {
+            try {
+              const publicId = existingItem.videoThumbnail.split("/").pop().split(".")[0];
+              await cloudinary.uploader.destroy(publicId);
+            } catch (e) {}
+          }
+          data.videoThumbnail = files.videoThumbnail[0].path;
+        }
 
-  //       // Update main image if not provided separately
-  //       if (!files.image && files.images.length > 0 && !data.image) {
-  //         data.image = files.images[0].path;
-  //       }
-  //     } else if (
-  //       data.existingImages &&
-  //       typeof data.existingImages === "string"
-  //     ) {
-  //       // If no new images but existingImages is provided
-  //       try {
-  //         data.images = JSON.parse(data.existingImages);
-  //       } catch (e) {
-  //         data.images = existingItem.images || [];
-  //       }
-  //     }
+        // Clear image fields for video type
+        data.image = undefined;
+        data.images = undefined;
+        data.guests = undefined;
+      }
 
-  //     // Parse highlights
-  //     if (data.highlights && typeof data.highlights === "string") {
-  //       try {
-  //         data.highlights = JSON.parse(data.highlights);
-  //       } catch (e) {
-  //         data.highlights = data.highlights
-  //           .split(",")
-  //           .map((h) => h.trim())
-  //           .filter(Boolean);
-  //       }
-  //     }
+      // Parse highlights if sent as JSON string
+      if (data.highlights && typeof data.highlights === "string") {
+        try {
+          data.highlights = JSON.parse(data.highlights);
+        } catch (e) {
+          data.highlights = data.highlights
+            .split(",")
+            .map((h) => h.trim())
+            .filter(Boolean);
+        }
+      }
 
-  //     const item = await PortfolioService.update(req.params.id, data);
+      const item = await PortfolioService.update(id, data);
 
-  //     res.status(200).json({
-  //       success: true,
-  //       message: "Portfolio item updated successfully",
-  //       data: item,
-  //     });
-  //   } catch (error) {
-  //     console.error("Update error:", error);
-
-  //     // Delete newly uploaded images on error
-  //     const files = req.files || {};
-
-  //     if (files.image && files.image.length > 0) {
-  //       try {
-  //         const publicId =
-  //           files.image[0].filename ||
-  //           files.image[0].path.split("/").pop().split(".")[0];
-  //         await cloudinary.uploader.destroy(publicId);
-  //       } catch (e) {}
-  //     }
-  //     if (files.images && files.images.length > 0) {
-  //       for (const file of files.images) {
-  //         try {
-  //           const publicId =
-  //             file.filename || file.path.split("/").pop().split(".")[0];
-  //           await cloudinary.uploader.destroy(publicId);
-  //         } catch (e) {}
-  //       }
-  //     }
-
-  //     res.status(500).json({
-  //       success: false,
-  //       message: error.message,
-  //     });
-  //   }
-  // }
+      res.status(200).json({
+        success: true,
+        message: "Portfolio item updated successfully",
+        data: item,
+      });
+    } catch (error) {
+      console.error("Update error:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
 
   static async delete(req, res) {
     try {
@@ -364,9 +284,7 @@ static async update(req, res) {
       if (item.image) {
         try {
           const publicId = item.image.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(
-            `violin-events/portfolio/${publicId}`,
-          );
+          await cloudinary.uploader.destroy(publicId);
         } catch (e) {}
       }
 
@@ -375,11 +293,17 @@ static async update(req, res) {
         for (const img of item.images) {
           try {
             const publicId = img.split("/").pop().split(".")[0];
-            await cloudinary.uploader.destroy(
-              `violin-events/portfolio/${publicId}`,
-            );
+            await cloudinary.uploader.destroy(publicId);
           } catch (e) {}
         }
+      }
+
+      // Delete video thumbnail from Cloudinary
+      if (item.videoThumbnail) {
+        try {
+          const publicId = item.videoThumbnail.split("/").pop().split(".")[0];
+          await cloudinary.uploader.destroy(publicId);
+        } catch (e) {}
       }
 
       await PortfolioService.delete(req.params.id);

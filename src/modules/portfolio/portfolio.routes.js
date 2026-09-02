@@ -8,15 +8,17 @@ const upload = require("../../config/multer");
 router.get("/", PortfolioController.getAll);
 router.get("/featured", PortfolioController.getFeatured);
 router.get("/videos", PortfolioController.getVideos);
+router.get("/images", PortfolioController.getImages);
 router.get("/:id", PortfolioController.getById);
 
-// ✅ Admin routes with multiple image uploads
+// Admin routes with multiple file uploads
 router.post(
   "/",
   protect,
   upload.fields([
-    { name: "image", maxCount: 1 }, // Main image
-    { name: "images", maxCount: 10 }, // Additional images
+    { name: "image", maxCount: 1 },          // Main image for image portfolio
+    { name: "images", maxCount: 10 },        // Additional images for image portfolio
+    { name: "videoThumbnail", maxCount: 1 }, // Video thumbnail for video portfolio
   ]),
   PortfolioController.create,
 );
@@ -27,6 +29,7 @@ router.put(
   upload.fields([
     { name: "image", maxCount: 1 },
     { name: "images", maxCount: 10 },
+    { name: "videoThumbnail", maxCount: 1 },
   ]),
   PortfolioController.update,
 );

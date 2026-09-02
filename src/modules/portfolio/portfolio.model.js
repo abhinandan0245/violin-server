@@ -2,53 +2,30 @@ const mongoose = require("mongoose");
 
 const portfolioSchema = new mongoose.Schema(
   {
+    // Common fields
     title: {
       type: String,
-      required: [false, "Title is required"],
       trim: true,
     },
     location: {
       type: String,
-      required: [false, "Location is required"],
       trim: true,
     },
     category: {
       type: String,
-      required: [false, "Category is required"],
-      // Enum removed - now any string can be added
-    },
-    image: {
-      type: String,
-      required: [false, "Image is required"],
+      trim: true,
     },
     date: {
       type: String,
-      required: [false, "Date is required"],
-    },
-    guests: {
-      type: Number,
-      required: [false, "Number of guests is required"],
     },
     description: {
       type: String,
-      required: [false, "Description is required"],
       maxlength: [500, "Description cannot exceed 500 characters"],
     },
-    highlights: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
     featured: {
       type: Boolean,
       default: false,
     },
-    images: [
-      {
-        type: String,
-      },
-    ],
     isActive: {
       type: Boolean,
       default: true,
@@ -61,15 +38,57 @@ const portfolioSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    highlights: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+    
+    // Portfolio Type: 'image' or 'video'
+    portfolioType: {
+      type: String,
+      enum: ['image', 'video'],
+      default: 'image',
+    },
+
+    // Image-based portfolio fields
+    image: {
+      type: String,
+    },
+    images: [
+      {
+        type: String,
+      },
+    ],
+    guests: {
+      type: Number,
+    },
+
+    // Video-based portfolio fields
     videoUrl: {
       type: String,
       trim: true,
-      // YouTube, Vimeo, or any video URL
+    },
+    videoThumbnail: {
+      type: String,
+      trim: true,
+    },
+    videoDuration: {
+      type: String,
+    },
+    videoViews: {
+      type: Number,
+      default: 0,
     },
   },
   {
     timestamps: true,
-  },
+  }
 );
+
+// Index for better query performance
+portfolioSchema.index({ portfolioType: 1, createdAt: -1 });
+portfolioSchema.index({ featured: 1, portfolioType: 1 });
 
 module.exports = mongoose.model("Portfolio", portfolioSchema);

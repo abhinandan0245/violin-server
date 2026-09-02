@@ -76,169 +76,179 @@ class DestinationController {
 
   // src/modules/destination/destination.controller.js
   // Replace the create method with this:
-static async create(req, res) {
-  try {
-    console.log("📝 Create Destination Request:");
-    console.log("Content-Type:", req.headers["content-type"]);
-    console.log("Body:", req.body);
-    console.log("File:", req.file ? " Image received" : " No image");
+  static async create(req, res) {
+    try {
+      console.log("📝 Create Destination Request:");
+      console.log("Content-Type:", req.headers["content-type"]);
+      console.log("Body:", req.body);
+      console.log("Files:", req.files ? Object.keys(req.files) : "No image");
 
-    // Check if it's bulk create
-    let isBulk = false;
-    let destinationsData = null;
+      // Check if it's bulk create
+      let isBulk = false;
+      let destinationsData = null;
 
-    // Check if we have destinations in the body
-    if (req.body.destinations && Array.isArray(req.body.destinations)) {
-      destinationsData = req.body.destinations;
-      isBulk = true;
-      console.log(
-        `🔄 Bulk create with ${destinationsData.length} destinations`,
-      );
-      console.log("Destinations data:", JSON.stringify(destinationsData, null, 2));
-    }
-
-    // Handle Bulk Create
-    if (isBulk && destinationsData) {
-      const createdDestinations = [];
-      const errors = [];
-
-      for (let i = 0; i < destinationsData.length; i++) {
-        try {
-          const data = destinationsData[i];
-          console.log(`Processing destination ${i + 1}:`, data);
-
-          // Handle tags - ensure it's an array
-          if (data.tags) {
-            if (typeof data.tags === "string") {
-              data.tags = data.tags
-                .split(",")
-                .map((tag) => tag.trim())
-                .filter(Boolean);
-            } else if (!Array.isArray(data.tags)) {
-              data.tags = [];
-            }
-          } else {
-            data.tags = [];
-          }
-
-          // Handle featured - ensure it's boolean
-          data.featured = data.featured === true || data.featured === "true";
-
-          // Remove empty fields to avoid validation issues
-          Object.keys(data).forEach(key => {
-            if (data[key] === "" || data[key] === null || data[key] === undefined) {
-              delete data[key];
-            }
-          });
-
-          // Only create if there's at least some data
-          if (Object.keys(data).length > 0 && data.country) {
-            const destination = await DestinationService.create(data);
-            createdDestinations.push(destination);
-          } else {
-            console.log(`Skipping destination ${i + 1} - no data or missing country`);
-            errors.push({
-              index: i,
-              message: "No data provided or missing country field",
-            });
-          }
-        } catch (error) {
-          console.error(`Error creating destination ${i + 1}:`, error);
-          errors.push({
-            index: i,
-            message: error.message,
-          });
-        }
+      if (req.body.destinations && Array.isArray(req.body.destinations)) {
+        destinationsData = req.body.destinations;
+        isBulk = true;
+        console.log(
+          `🔄 Bulk create with ${destinationsData.length} destinations`,
+        );
       }
 
-      if (createdDestinations.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Failed to create any destinations. Please fill in at least one destination with required fields.",
-          errors: errors,
+      // Handle Bulk Create (unchanged — no file support here)
+      if (isBulk && destinationsData) {
+        const createdDestinations = [];
+        const errors = [];
+
+        for (let i = 0; i < destinationsData.length; i++) {
+          try {
+            const data = destinationsData[i];
+
+            if (data.tags) {
+              if (typeof data.tags === "string") {
+                data.tags = data.tags
+                  .split(",")
+                  .map((tag) => tag.trim())
+                  .filter(Boolean);
+              } else if (!Array.isArray(data.tags)) {
+                data.tags = [];
+              }
+            } else {
+              data.tags = [];
+            }
+
+            data.featured = data.featured === true || data.featured === "true";
+
+            Object.keys(data).forEach((key) => {
+              if (
+                data[key] === "" ||
+                data[key] === null ||
+                data[key] === undefined
+              ) {
+                delete data[key];
+              }
+            });
+
+            if (Object.keys(data).length > 0 && data.country) {
+              const destination = await DestinationService.create(data);
+              createdDestinations.push(destination);
+            } else {
+              errors.push({
+                index: i,
+                message: "No data provided or missing country field",
+              });
+            }
+          } catch (error) {
+            console.error(`Error creating destination ${i + 1}:`, error);
+            errors.push({ index: i, message: error.message });
+          }
+        }
+
+        if (createdDestinations.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "Failed to create any destinations. Please fill in at least one destination with required fields.",
+            errors: errors,
+          });
+        }
+
+        return res.status(201).json({
+          success: true,
+          message: `${createdDestinations.length} destinations created successfully`,
+          data: createdDestinations,
+          errors: errors.length > 0 ? errors : undefined,
         });
       }
 
-      return res.status(201).json({
-        success: true,
-        message: `${createdDestinations.length} destinations created successfully`,
-        data: createdDestinations,
-        errors: errors.length > 0 ? errors : undefined,
-      });
-    }
+      // Handle Single Create
+      console.log("📦 Processing single destination create");
+      const data = req.body;
 
-    // Handle Single Create
-    console.log("📦 Processing single destination create");
-    const data = req.body;
+      // Files come as object-shaped req.files now
+      if (req.files?.image?.[0]) {
+        data.image = req.files.image[0].path;
+      }
+      if (req.files?.bannerImage?.[0]) {
+        data.bannerImage = req.files.bannerImage[0].path;
+      }
 
-    // If image uploaded, add Cloudinary URL
-    if (req.file) {
-      data.image = req.file.path;
-    }
-
-    // Handle tags
-    if (data.tags) {
-      if (typeof data.tags === "string") {
-        data.tags = data.tags
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter(Boolean);
-      } else if (!Array.isArray(data.tags)) {
+      if (data.tags) {
+        if (typeof data.tags === "string") {
+          data.tags = data.tags
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter(Boolean);
+        } else if (!Array.isArray(data.tags)) {
+          data.tags = [];
+        }
+      } else {
         data.tags = [];
       }
-    } else {
-      data.tags = [];
-    }
 
-    // Handle featured
-    data.featured = data.featured === true || data.featured === "true";
+      data.featured = data.featured === true || data.featured === "true";
 
-    // Remove empty fields
-    Object.keys(data).forEach(key => {
-      if (data[key] === "" || data[key] === null || data[key] === undefined) {
-        delete data[key];
+      Object.keys(data).forEach((key) => {
+        if (data[key] === "" || data[key] === null || data[key] === undefined) {
+          delete data[key];
+        }
+      });
+
+      if (Object.keys(data).length === 0 || !data.country) {
+        // Rollback any uploaded images
+        if (req.files?.image?.[0]) {
+          try {
+            await cloudinary.uploader.destroy(req.files.image[0].filename);
+          } catch (err) {
+            console.error("Error deleting image:", err);
+          }
+        }
+        if (req.files?.bannerImage?.[0]) {
+          try {
+            await cloudinary.uploader.destroy(
+              req.files.bannerImage[0].filename,
+            );
+          } catch (err) {
+            console.error("Error deleting banner image:", err);
+          }
+        }
+        return res.status(400).json({
+          success: false,
+          message: "Please provide at least a country to create a destination",
+        });
       }
-    });
 
-    // Only create if there's at least some data
-    if (Object.keys(data).length === 0 || !data.country) {
-      if (req.file) {
+      const destination = await DestinationService.create(data);
+
+      res.status(201).json({
+        success: true,
+        message: "Destination created successfully",
+        data: destination,
+      });
+    } catch (error) {
+      console.error("❌ Create Destination Error:", error);
+
+      if (req.files?.image?.[0]) {
         try {
-          await cloudinary.uploader.destroy(req.file.filename);
+          await cloudinary.uploader.destroy(req.files.image[0].filename);
         } catch (err) {
           console.error("Error deleting image:", err);
         }
       }
-      return res.status(400).json({
+      if (req.files?.bannerImage?.[0]) {
+        try {
+          await cloudinary.uploader.destroy(req.files.bannerImage[0].filename);
+        } catch (err) {
+          console.error("Error deleting banner image:", err);
+        }
+      }
+
+      res.status(500).json({
         success: false,
-        message: "Please provide at least a country to create a destination",
+        message: error.message || "Failed to create destination",
       });
     }
-
-    const destination = await DestinationService.create(data);
-
-    res.status(201).json({
-      success: true,
-      message: "Destination created successfully",
-      data: destination,
-    });
-  } catch (error) {
-    console.error("❌ Create Destination Error:", error);
-
-    if (req.file) {
-      try {
-        await cloudinary.uploader.destroy(req.file.filename);
-      } catch (err) {
-        console.error("Error deleting image:", err);
-      }
-    }
-
-    res.status(500).json({
-      success: false,
-      message: error.message || "Failed to create destination",
-    });
   }
-}
   // Update destination with Country, State, City
   static async update(req, res) {
     try {
@@ -255,9 +265,8 @@ static async create(req, res) {
 
       const data = req.body;
 
-      // If new image uploaded
-      if (req.file) {
-        // Delete old image from Cloudinary
+      // New main image uploaded
+      if (req.files?.image?.[0]) {
         if (existingDestination.image) {
           try {
             const publicId = existingDestination.image
@@ -271,10 +280,27 @@ static async create(req, res) {
             console.error("Error deleting old image:", err);
           }
         }
-        data.image = req.file.path;
+        data.image = req.files.image[0].path;
       }
 
-      // Handle tags - convert from string to array if needed
+      // New banner image uploaded
+      if (req.files?.bannerImage?.[0]) {
+        if (existingDestination.bannerImage) {
+          try {
+            const publicId = existingDestination.bannerImage
+              .split("/")
+              .pop()
+              .split(".")[0];
+            await cloudinary.uploader.destroy(
+              `violin-events/destinations/${publicId}`,
+            );
+          } catch (err) {
+            console.error("Error deleting old banner image:", err);
+          }
+        }
+        data.bannerImage = req.files.bannerImage[0].path;
+      }
+
       if (data.tags && typeof data.tags === "string") {
         data.tags = data.tags
           .split(",")
@@ -282,7 +308,6 @@ static async create(req, res) {
           .filter(Boolean);
       }
 
-      // Handle featured - convert from string to boolean
       if (data.featured === "true" || data.featured === true) {
         data.featured = true;
       } else if (data.featured === "false" || data.featured === false) {
@@ -297,14 +322,20 @@ static async create(req, res) {
         data: destination,
       });
     } catch (error) {
-      console.error(" Update Destination Error:", error);
+      console.error("Update Destination Error:", error);
 
-      // If error, delete newly uploaded images from Cloudinary
-      if (req.file) {
+      if (req.files?.image?.[0]) {
         try {
-          await cloudinary.uploader.destroy(req.file.filename);
+          await cloudinary.uploader.destroy(req.files.image[0].filename);
         } catch (err) {
           console.error("Error deleting image:", err);
+        }
+      }
+      if (req.files?.bannerImage?.[0]) {
+        try {
+          await cloudinary.uploader.destroy(req.files.bannerImage[0].filename);
+        } catch (err) {
+          console.error("Error deleting banner image:", err);
         }
       }
 
@@ -327,7 +358,7 @@ static async create(req, res) {
         });
       }
 
-      // Delete main image from Cloudinary
+      // Delete main image
       if (destination.image) {
         const publicId = destination.image.split("/").pop().split(".")[0];
         await cloudinary.uploader.destroy(
@@ -335,14 +366,12 @@ static async create(req, res) {
         );
       }
 
-      // Delete all images from Cloudinary
-      if (destination.images && destination.images.length > 0) {
-        for (const img of destination.images) {
-          const publicId = img.split("/").pop().split(".")[0];
-          await cloudinary.uploader.destroy(
-            `violin-events/destinations/${publicId}`,
-          );
-        }
+      // Delete banner image
+      if (destination.bannerImage) {
+        const publicId = destination.bannerImage.split("/").pop().split(".")[0];
+        await cloudinary.uploader.destroy(
+          `violin-events/destinations/${publicId}`,
+        );
       }
 
       await DestinationService.delete(req.params.id);
@@ -356,6 +385,91 @@ static async create(req, res) {
         success: false,
         message: error.message,
       });
+    }
+  }
+
+  // Delete main image only
+  static async deleteImage(req, res) {
+    try {
+      const destination = await DestinationService.getById(req.params.id);
+      if (!destination) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Destination not found" });
+      }
+
+      if (destination.image) {
+        try {
+          const publicId = destination.image.split("/").pop().split(".")[0];
+          await cloudinary.uploader.destroy(
+            `violin-events/destinations/${publicId}`,
+          );
+        } catch (err) {
+          console.error("Error deleting image from Cloudinary:", err);
+        }
+      }
+
+      const updated = await DestinationService.update(req.params.id, {
+        image: "",
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Image deleted successfully",
+        data: updated,
+      });
+    } catch (error) {
+      console.error("❌ Delete Image Error:", error);
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: error.message || "Failed to delete image",
+        });
+    }
+  }
+
+  // Delete banner image only
+  static async deleteBannerImage(req, res) {
+    try {
+      const destination = await DestinationService.getById(req.params.id);
+      if (!destination) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Destination not found" });
+      }
+
+      if (destination.bannerImage) {
+        try {
+          const publicId = destination.bannerImage
+            .split("/")
+            .pop()
+            .split(".")[0];
+          await cloudinary.uploader.destroy(
+            `violin-events/destinations/${publicId}`,
+          );
+        } catch (err) {
+          console.error("Error deleting banner image from Cloudinary:", err);
+        }
+      }
+
+      const updated = await DestinationService.update(req.params.id, {
+        bannerImage: "",
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Banner image deleted successfully",
+        data: updated,
+      });
+    } catch (error) {
+      console.error("❌ Delete Banner Image Error:", error);
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: error.message || "Failed to delete banner image",
+        });
     }
   }
 }
