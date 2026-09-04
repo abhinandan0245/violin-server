@@ -24,3 +24,5 @@ router.delete("/:id", protect, ArtistController.delete);
 router.delete("/bulk-delete", protect, ArtistController.bulkDelete);
 
 module.exports = router;
+
+
