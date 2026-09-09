@@ -71,6 +71,7 @@
 // }
 
 // module.exports = ContactService;
+
 // src/modules/contact/contact.service.js
 const Contact = require("./contact.model");
 
@@ -92,7 +93,8 @@ class ContactService {
     const [items, total] = await Promise.all([
       Contact.find(filter)
         .populate("enquiries.venue.venueId", "name")
-        .populate("enquiries.artist.categoryId", "name")
+        // ✅ FIXED: Use "categoryIds" (plural) instead of "categoryId"
+        .populate("enquiries.artist.categoryIds", "name")
         .populate("enquiries.artist.selectedArtistIds", "name")
         .limit(parseInt(limit))
         .skip(skip)
@@ -112,7 +114,8 @@ class ContactService {
   static async getById(id) {
     return await Contact.findById(id)
       .populate("enquiries.venue.venueId", "name")
-      .populate("enquiries.artist.categoryId", "name")
+      // ✅ FIXED: Use "categoryIds" (plural) instead of "categoryId"
+      .populate("enquiries.artist.categoryIds", "name")
       .populate("enquiries.artist.selectedArtistIds", "name");
   }
 

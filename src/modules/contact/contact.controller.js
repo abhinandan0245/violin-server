@@ -252,7 +252,9 @@
 // module.exports = ContactController;
 
 
-// src/modules/contact/contact.controller.js
+// src/modules/contact/contact.controller.
+
+
 const ContactService = require("./contact.service");
 const nodemailer = require("nodemailer");
 
@@ -390,28 +392,38 @@ class ContactController {
 
     if (inquiry.enquiries.general) {
       html += `
-        <h4>💬 General Enquiry</h4>
+        <h4> General Enquiry</h4>
         <p>${inquiry.enquiries.general.comment}</p>
       `;
     }
 
-    if (inquiry.enquiries.venue) {
-      const v = inquiry.enquiries.venue;
-      html += `
-        <h4>🏛️ Venue Booking</h4>
-        <p><strong>Country:</strong> ${v.country || 'N/A'}</p>
-        <p><strong>State:</strong> ${v.state || 'N/A'}</p>
-        <p><strong>City:</strong> ${v.city || 'N/A'}</p>
-        <p><strong>Venue:</strong> ${v.venueName || 'N/A'}</p>
-        <p><strong>Date:</strong> ${v.bookingDate ? new Date(v.bookingDate).toLocaleDateString() : 'N/A'}</p>
-        <p><strong>Details:</strong> ${v.additionalDetails || 'N/A'}</p>
-      `;
-    }
+   // In contact.controller.js - Update generateDynamicEmailHTML for venue
+if (inquiry.enquiries.venue) {
+  const v = inquiry.enquiries.venue;
+  let dateDisplay = 'N/A';
+  
+  if (v.bookingType === 'single' && v.bookingDate) {
+    dateDisplay = new Date(v.bookingDate).toLocaleDateString();
+  } else if (v.bookingType === 'range' && v.dateRangeStart && v.dateRangeEnd) {
+    dateDisplay = `${new Date(v.dateRangeStart).toLocaleDateString()} to ${new Date(v.dateRangeEnd).toLocaleDateString()}`;
+  }
+  
+  html += `
+    <h4> Venue Booking</h4>
+    <p><strong>Country:</strong> ${v.country || 'N/A'}</p>
+    <p><strong>State:</strong> ${v.state || 'N/A'}</p>
+    <p><strong>City:</strong> ${v.city || 'N/A'}</p>
+    <p><strong>Venue:</strong> ${v.venueName || 'N/A'}</p>
+    <p><strong>Booking Type:</strong> ${v.bookingType === 'single' ? 'Single Date' : 'Date Range'}</p>
+    <p><strong>Date${v.bookingType === 'range' ? ' Range' : ''}:</strong> ${dateDisplay}</p>
+    <p><strong>Details:</strong> ${v.additionalDetails || 'N/A'}</p>
+  `;
+}
 
     if (inquiry.enquiries.artist) {
       const a = inquiry.enquiries.artist;
       html += `
-        <h4>🎤 Artist Booking</h4>
+        <h4> Artist Booking</h4>
         <p><strong>Event Type:</strong> ${a.eventType || 'N/A'}</p>
         <p><strong>Date:</strong> ${a.eventDate ? new Date(a.eventDate).toLocaleDateString() : 'N/A'}</p>
         <p><strong>Category:</strong> ${a.categoryName || 'N/A'}</p>
@@ -422,7 +434,7 @@ class ContactController {
     if (inquiry.enquiries.event) {
       const e = inquiry.enquiries.event;
       html += `
-        <h4>📅 Event Planning</h4>
+        <h4>Event Planning</h4>
         <p><strong>Event Type:</strong> ${e.eventType || 'N/A'}</p>
         <p><strong>Date:</strong> ${e.eventDate ? new Date(e.eventDate).toLocaleDateString() : 'N/A'}</p>
         <p><strong>Guests:</strong> ${e.guestCount || 'N/A'}</p>

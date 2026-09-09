@@ -78,6 +78,9 @@
 // module.exports = mongoose.model("Contact", contactSchema);
 
 // src/modules/contact/contact.model.js
+
+
+
 const mongoose = require("mongoose");
 
 const contactSchema = new mongoose.Schema(
@@ -104,10 +107,12 @@ const contactSchema = new mongoose.Schema(
     },
 
     // 2. Helper field for easy admin filtering (e.g., ["general", "venue"])
-    enquiryTypes: [{
-      type: String,
-      enum: ["general", "venue", "artist", "event"]
-    }],
+    enquiryTypes: [
+      {
+        type: String,
+        enum: ["general", "venue", "artist", "event"],
+      },
+    ],
 
     // 3. Dynamic Enquiry Sections
     enquiries: {
@@ -120,15 +125,26 @@ const contactSchema = new mongoose.Schema(
         city: { type: String, trim: true },
         venueId: { type: mongoose.Schema.Types.ObjectId, ref: "Venue" },
         venueName: { type: String, trim: true },
+        bookingType: {
+          type: String,
+          enum: ["single", "range"],
+          default: "single",
+        },
         bookingDate: { type: Date },
+        dateRangeStart: { type: Date },
+        dateRangeEnd: { type: Date },
         additionalDetails: { type: String, trim: true },
       },
       artist: {
         eventType: { type: String, trim: true },
         eventDate: { type: Date },
-        categoryId: { type: mongoose.Schema.Types.ObjectId, ref: "ArtistCategory" },
+        categoryIds: [
+    { type: mongoose.Schema.Types.ObjectId, ref: "ArtistCategory" }
+  ],
         categoryName: { type: String, trim: true },
-        selectedArtistIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Artist" }],
+        selectedArtistIds: [
+          { type: mongoose.Schema.Types.ObjectId, ref: "Artist" },
+        ],
         additionalDetails: { type: String, trim: true },
       },
       event: {
@@ -154,7 +170,7 @@ const contactSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.model("Contact", contactSchema);
