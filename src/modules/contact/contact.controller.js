@@ -255,6 +255,8 @@
 // src/modules/contact/contact.controller.
 
 
+
+
 const ContactService = require("./contact.service");
 const nodemailer = require("nodemailer");
 
@@ -420,16 +422,26 @@ if (inquiry.enquiries.venue) {
   `;
 }
 
-    if (inquiry.enquiries.artist) {
-      const a = inquiry.enquiries.artist;
-      html += `
-        <h4> Artist Booking</h4>
-        <p><strong>Event Type:</strong> ${a.eventType || 'N/A'}</p>
-        <p><strong>Date:</strong> ${a.eventDate ? new Date(a.eventDate).toLocaleDateString() : 'N/A'}</p>
-        <p><strong>Category:</strong> ${a.categoryName || 'N/A'}</p>
-        <p><strong>Details:</strong> ${a.additionalDetails || 'N/A'}</p>
-      `;
-    }
+   // In contact.controller.js - Update generateDynamicEmailHTML for artist
+if (inquiry.enquiries.artist) {
+  const a = inquiry.enquiries.artist;
+  let dateDisplay = 'N/A';
+  
+  if (a.bookingType === 'single' && a.eventDate) {
+    dateDisplay = new Date(a.eventDate).toLocaleDateString();
+  } else if (a.bookingType === 'range' && a.dateRangeStart && a.dateRangeEnd) {
+    dateDisplay = `${new Date(a.dateRangeStart).toLocaleDateString()} to ${new Date(a.dateRangeEnd).toLocaleDateString()}`;
+  }
+  
+  html += `
+    <h4> Artist Booking</h4>
+    <p><strong>Event Type:</strong> ${a.eventType || 'N/A'}</p>
+    <p><strong>Booking Type:</strong> ${a.bookingType === 'single' ? 'Single Date' : 'Date Range'}</p>
+    <p><strong>Date${a.bookingType === 'range' ? ' Range' : ''}:</strong> ${dateDisplay}</p>
+    <p><strong>Categories:</strong> ${a.categoryNames?.join(', ') || a.categoryName || 'N/A'}</p>
+    <p><strong>Details:</strong> ${a.additionalDetails || 'N/A'}</p>
+  `;
+}
 
     if (inquiry.enquiries.event) {
       const e = inquiry.enquiries.event;

@@ -79,8 +79,6 @@
 
 // src/modules/contact/contact.model.js
 
-
-
 const mongoose = require("mongoose");
 
 const contactSchema = new mongoose.Schema(
@@ -137,11 +135,18 @@ const contactSchema = new mongoose.Schema(
       },
       artist: {
         eventType: { type: String, trim: true },
+        bookingType: {
+          type: String,
+          enum: ["single", "range"],
+          default: "single",
+        },
         eventDate: { type: Date },
+        dateRangeStart: { type: Date },
+        dateRangeEnd: { type: Date },
         categoryIds: [
-    { type: mongoose.Schema.Types.ObjectId, ref: "ArtistCategory" }
-  ],
-        categoryName: { type: String, trim: true },
+          { type: mongoose.Schema.Types.ObjectId, ref: "ArtistCategory" },
+        ],
+        categoryNames: [{ type: String, trim: true }],
         selectedArtistIds: [
           { type: mongoose.Schema.Types.ObjectId, ref: "Artist" },
         ],
