@@ -77,6 +77,29 @@ class JournalController {
     }
   }
 
+  // ✅ ADDED: Get single item by slug (Public)
+  static async getBySlug(req, res) {
+    try {
+      const item = await JournalService.getBySlug(req.params.slug);
+      if (!item) {
+        return res.status(404).json({
+          success: false,
+          message: "Item not found",
+        });
+      }
+      res.status(200).json({
+        success: true,
+        data: item,
+      });
+    } catch (error) {
+      console.error("Error in getBySlug:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
   // Create item (Admin)
   static async create(req, res) {
     try {
@@ -86,12 +109,10 @@ class JournalController {
       console.log("Body:", data);
       console.log("File:", req.file ? " Image received" : " No image");
 
-      // If image uploaded, add Cloudinary URL
       if (req.file) {
         data.image = req.file.path;
       }
 
-      // If multiple images uploaded
       if (req.files && req.files.length > 0) {
         data.images = req.files.map((file) => file.path);
         if (!data.image && req.files.length > 0) {
@@ -99,14 +120,12 @@ class JournalController {
         }
       }
 
-      // Remove empty fields
       Object.keys(data).forEach((key) => {
         if (data[key] === "" || data[key] === null || data[key] === undefined) {
           delete data[key];
         }
       });
 
-      // Check if there's any data to save
       if (Object.keys(data).length === 0) {
         if (req.file) {
           try {
@@ -121,24 +140,9 @@ class JournalController {
         });
       }
 
-      // ✅ FIX: Check if slug already exists using findOne
-      if (data.title && !data.slug) {
-        data.slug = data.title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "");
-
-        // Make slug unique if it already exists
-        const existingItem = await JournalService.findOne({ slug: data.slug });
-        if (existingItem) {
-          data.slug = `${data.slug}-${Date.now()}`;
-        }
-      } else if (data.slug) {
-        // If slug is provided, make it unique
-        const existingItem = await JournalService.findOne({ slug: data.slug });
-        if (existingItem) {
-          data.slug = `${data.slug}-${Date.now()}`;
-        }
+      // ✅ UPDATED: Auto-generate unique slug from title
+      if (data.title) {
+        data.slug = await JournalService.generateUniqueSlug(data.title);
       }
 
       const item = await JournalService.create(data);
@@ -186,7 +190,6 @@ class JournalController {
       console.log("Body:", data);
       console.log("File:", req.file ? " Image received" : " No image");
 
-      // Check if item exists
       const existingItem = await JournalService.getById(id);
       if (!existingItem) {
         return res.status(404).json({
@@ -195,12 +198,10 @@ class JournalController {
         });
       }
 
-      // If image uploaded, add Cloudinary URL
       if (req.file) {
         data.image = req.file.path;
       }
 
-      // If multiple images uploaded
       if (req.files && req.files.length > 0) {
         data.images = req.files.map((file) => file.path);
         if (!data.image && req.files.length > 0) {
@@ -208,14 +209,12 @@ class JournalController {
         }
       }
 
-      // Remove empty fields
       Object.keys(data).forEach((key) => {
         if (data[key] === "" || data[key] === null || data[key] === undefined) {
           delete data[key];
         }
       });
 
-      // If no data to update
       if (Object.keys(data).length === 0) {
         return res.status(400).json({
           success: false,
@@ -223,21 +222,9 @@ class JournalController {
         });
       }
 
-      // ✅ FIX: Update slug if title is updated
-      if (data.title && !data.slug) {
-        data.slug = data.title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-+|-+$/g, "");
-
-        // Make slug unique if it already exists
-        const slugCheck = await JournalService.findOne({
-          slug: data.slug,
-          _id: { $ne: id }, // Exclude current item
-        });
-        if (slugCheck) {
-          data.slug = `${data.slug}-${Date.now()}`;
-        }
+      // ✅ UPDATED: Regenerate slug if title changed
+      if (data.title && data.title !== existingItem.title) {
+        data.slug = await JournalService.generateUniqueSlug(data.title, id);
       }
 
       const item = await JournalService.update(id, data);
@@ -286,13 +273,11 @@ class JournalController {
         });
       }
 
-      // Delete main image from Cloudinary
       if (item.image) {
         const publicId = item.image.split("/").pop().split(".")[0];
         await cloudinary.uploader.destroy(`violin-events/journal/${publicId}`);
       }
 
-      // Delete all images from Cloudinary
       if (item.images && item.images.length > 0) {
         for (const img of item.images) {
           const publicId = img.split("/").pop().split(".")[0];

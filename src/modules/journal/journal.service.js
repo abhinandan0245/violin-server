@@ -45,12 +45,11 @@ class JournalService {
 
   // Get single item by ID
   static async getById(id) {
-    // Increment views
     await Journal.findByIdAndUpdate(id, { $inc: { views: 1 } });
     return await Journal.findById(id);
   }
 
-  // Get single item by slug
+  // ✅ Get single item by slug (already exists, kept here)
   static async getBySlug(slug) {
     const item = await Journal.findOne({ slug, isActive: true });
     if (item) {
@@ -59,9 +58,33 @@ class JournalService {
     return item;
   }
 
-  // ✅ ADD THIS METHOD - Find one item by filter
+  // Find one item by filter
   static async findOne(filter) {
     return await Journal.findOne(filter);
+  }
+
+  // ✅ ADDED: Generate a unique slug
+  static async generateUniqueSlug(title, excludeId = null) {
+    let baseSlug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+      const query = { slug };
+      if (excludeId) {
+        query._id = { $ne: excludeId };
+      }
+      const existing = await Journal.findOne(query);
+      if (!existing) break;
+      slug = `${baseSlug}-${counter}`;
+      counter++;
+    }
+
+    return slug;
   }
 
   // Create item

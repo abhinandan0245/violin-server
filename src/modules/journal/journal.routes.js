@@ -9,6 +9,7 @@ const upload = require("../../config/multer");
 router.get("/", JournalController.getAll);
 router.get("/featured", JournalController.getFeatured);
 router.get("/categories", JournalController.getCategories);
+router.get("/slug/:slug", JournalController.getBySlug);
 router.get("/:id", JournalController.getById);
 
 // Admin routes (Protected)

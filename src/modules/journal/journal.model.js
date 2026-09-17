@@ -8,7 +8,14 @@ const journalSchema = new mongoose.Schema(
       required: [false, "Title is required"],
       trim: true,
     },
-    // ✅ SLUG REMOVED - No longer needed
+    // ✅ ADDED: Slug field
+    slug: {
+      type: String,
+      unique: true,
+      lowercase: true,
+      trim: true,
+      index: true,
+    },
     category: {
       type: String,
       required: [false, "Category is required"],
@@ -69,5 +76,16 @@ const journalSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+// ✅ ADDED: Pre-save hook to auto-generate slug from title
+journalSchema.pre("save", function (next) {
+  if (this.title && !this.slug) {
+    this.slug = this.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+  next();
+});
 
 module.exports = mongoose.model("Journal", journalSchema);
