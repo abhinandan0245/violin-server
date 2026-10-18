@@ -2,13 +2,13 @@ const ArtistCategory = require("./artistCategory.model");
 
 class ArtistCategoryController {
   // ✅ Get all categories
- static async getAll(req, res) {
+  static async getAll(req, res) {
     try {
       const { isActive, limit = 100, page = 1 } = req.query;
       const filter = {};
 
       // ✅ Only filter if isActive is provided
-      if (isActive !== undefined && isActive !== '') {
+      if (isActive !== undefined && isActive !== "") {
         filter.isActive = isActive === "true";
       }
       // ✅ If no isActive filter, return ALL categories (both active and inactive)
@@ -51,8 +51,10 @@ class ArtistCategoryController {
   // ✅ Get active categories (for public use)
   static async getActive(req, res) {
     try {
-      const categories = await ArtistCategory.find({ isActive: true })
-        .sort({ order: 1, name: 1 });
+      const categories = await ArtistCategory.find({ isActive: true }).sort({
+        order: 1,
+        name: 1,
+      });
 
       res.status(200).json({
         success: true,
@@ -95,11 +97,12 @@ class ArtistCategoryController {
   }
 
   // ✅ Get category by slug (name as slug)
+  // ✅ Get category by slug
   static async getBySlug(req, res) {
     try {
       const { slug } = req.params;
       const category = await ArtistCategory.findOne({
-        name: { $regex: new RegExp(`^${slug}$`, "i") },
+        slug: slug.toLowerCase(),
         isActive: true,
       });
 
@@ -128,12 +131,23 @@ class ArtistCategoryController {
     try {
       const data = req.body;
 
-      // If image uploaded, add Cloudinary URL
       if (req.file) {
         data.image = req.file.path;
       }
 
-      // Check if category already exists
+      // Optional: if user supplied a custom slug, clean it
+      if (data.slug && typeof data.slug === "string") {
+        data.slug = data.slug
+          .toString()
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/[\s_]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+      }
+      // If no slug is provided, the pre-save hook will generate one
+
+      // Check duplicate name
       const existing = await ArtistCategory.findOne({
         name: { $regex: new RegExp(`^${data.name}$`, "i") },
       });
@@ -175,12 +189,11 @@ class ArtistCategoryController {
         });
       }
 
-      // If new image uploaded
       if (req.file) {
         data.image = req.file.path;
       }
 
-      // Check if name already exists (excluding current category)
+      // Check duplicate name (excluding current)
       if (data.name) {
         const existing = await ArtistCategory.findOne({
           name: { $regex: new RegExp(`^${data.name}$`, "i") },
@@ -195,14 +208,11 @@ class ArtistCategoryController {
         }
       }
 
-      const updatedCategory = await ArtistCategory.findByIdAndUpdate(
-        id,
-        data,
-        {
-          new: true,
-          runValidators: true,
-        }
-      );
+      const updatedCategory = await ArtistCategory.findByIdAndUpdate(id, data, {
+        new: true,
+        runValidators: true,
+        context: "query", // needed so `this` in pre-hook is the query
+      });
 
       res.status(200).json({
         success: true,
@@ -232,7 +242,8 @@ class ArtistCategoryController {
         });
       }
 
-      category.isActive = isActive !== undefined ? isActive : !category.isActive;
+      category.isActive =
+        isActive !== undefined ? isActive : !category.isActive;
       await category.save();
 
       res.status(200).json({
@@ -270,8 +281,10 @@ class ArtistCategoryController {
 
       await ArtistCategory.bulkWrite(bulkOps);
 
-      const updatedCategories = await ArtistCategory.find()
-        .sort({ order: 1, name: 1 });
+      const updatedCategories = await ArtistCategory.find().sort({
+        order: 1,
+        name: 1,
+      });
 
       res.status(200).json({
         success: true,

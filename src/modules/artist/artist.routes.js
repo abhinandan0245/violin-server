@@ -4,13 +4,14 @@ const ArtistController = require("./artist.controller");
 const { protect } = require("../../middleware/auth");
 const upload = require("../../config/multer");
 
-// ✅ Public routes
+// Public routes
 router.get("/", ArtistController.getAll);
 router.get("/featured", ArtistController.getFeatured);
 router.get("/category/:categoryId", ArtistController.getByCategory);
+router.get("/slug/:slug", ArtistController.getBySlug);
 router.get("/:id", ArtistController.getById);
 
-// ✅ Admin routes
+//  Admin routes
 router.post("/", protect, upload.single("image"), ArtistController.create);
 
 router.put("/:id", protect, upload.single("image"), ArtistController.update);

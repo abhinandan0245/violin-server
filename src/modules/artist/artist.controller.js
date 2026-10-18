@@ -44,7 +44,7 @@ class ArtistController {
 
       const [items, total] = await Promise.all([
         Artist.find(filter)
-          .populate("category", "name image")
+          .populate("category", "name slug image")
           .sort({ featured: -1, name: 1 })
           .limit(parseInt(limit))
           .skip(skip),
@@ -79,7 +79,7 @@ class ArtistController {
         featured: true,
         isActive: true,
       })
-        .populate("category", "name image")
+        .populate("category", "name slug image")
         .sort({ name: 1 })
         .limit(parseInt(limit));
 
@@ -90,6 +90,36 @@ class ArtistController {
       });
     } catch (error) {
       console.error("Error fetching featured artists:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  // ✅ Get single artist by slug (public)
+  static async getBySlug(req, res) {
+    try {
+      const { slug } = req.params;
+
+      const artist = await Artist.findOne({
+        slug: slug.toLowerCase(),
+        isActive: true,
+      }).populate("category", "name slug image description");
+
+      if (!artist) {
+        return res.status(404).json({
+          success: false,
+          message: "Artist not found",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: artist,
+      });
+    } catch (error) {
+      console.error("Error fetching artist by slug:", error);
       res.status(500).json({
         success: false,
         message: error.message,
@@ -121,7 +151,7 @@ class ArtistController {
 
       const [items, total] = await Promise.all([
         Artist.find(filter)
-          .populate("category", "name image")
+          .populate("category", "name slug image")
           .sort({ featured: -1, name: 1 })
           .limit(parseInt(limit))
           .skip(skip),
@@ -153,7 +183,10 @@ class ArtistController {
     try {
       const { id } = req.params;
 
-      const artist = await Artist.findById(id).populate("category", "name image description");
+      const artist = await Artist.findById(id).populate(
+        "category",
+        "name slug image description",
+      );
 
       if (!artist) {
         return res.status(404).json({
@@ -180,50 +213,50 @@ class ArtistController {
     try {
       const data = req.body;
 
-      // Handle image upload
       if (req.file) {
         data.image = req.file.path;
       }
 
-      // Validate required fields
+      // Optional custom slug — clean it if provided
+      if (data.slug && typeof data.slug === "string") {
+        data.slug = data.slug
+          .toString()
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, "")
+          .replace(/[\s_]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+      }
+      // If not provided, pre("save") hook auto-generates it from `name`
+
       if (!data.name) {
-        return res.status(400).json({
-          success: false,
-          message: "Artist name is required",
-        });
+        return res
+          .status(400)
+          .json({ success: false, message: "Artist name is required" });
       }
-
       if (!data.category) {
-        return res.status(400).json({
-          success: false,
-          message: "Category is required",
-        });
+        return res
+          .status(400)
+          .json({ success: false, message: "Category is required" });
       }
-
       if (!data.image) {
-        return res.status(400).json({
-          success: false,
-          message: "Artist image is required",
-        });
+        return res
+          .status(400)
+          .json({ success: false, message: "Artist image is required" });
       }
-
       if (data.price === undefined || data.price === null) {
-        return res.status(400).json({
-          success: false,
-          message: "Price is required",
-        });
+        return res
+          .status(400)
+          .json({ success: false, message: "Price is required" });
       }
 
-      // Check if category exists
       const category = await ArtistCategory.findById(data.category);
       if (!category) {
-        return res.status(400).json({
-          success: false,
-          message: "Category not found",
-        });
+        return res
+          .status(400)
+          .json({ success: false, message: "Category not found" });
       }
 
-      // Parse languages if sent as string
       if (data.languages && typeof data.languages === "string") {
         try {
           data.languages = JSON.parse(data.languages);
@@ -233,9 +266,7 @@ class ArtistController {
       }
 
       const artist = await Artist.create(data);
-
-      // Populate category for response
-      await artist.populate("category", "name image");
+      await artist.populate("category", "name slug image");
 
       res.status(201).json({
         success: true,
@@ -244,10 +275,7 @@ class ArtistController {
       });
     } catch (error) {
       console.error("Error creating artist:", error);
-      res.status(500).json({
-        success: false,
-        message: error.message,
-      });
+      res.status(500).json({ success: false, message: error.message });
     }
   }
 
@@ -293,7 +321,7 @@ class ArtistController {
       const updatedArtist = await Artist.findByIdAndUpdate(id, data, {
         new: true,
         runValidators: true,
-      }).populate("category", "name image");
+      }).populate("category", "name slug image");
 
       res.status(200).json({
         success: true,
