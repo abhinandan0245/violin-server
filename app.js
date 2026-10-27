@@ -4,18 +4,18 @@ const helmet = require("helmet");
 const dotenv = require("dotenv");
 
 // Import module routes
-const adminRoutes = require("./modules/admin/admin.routes");
-const destinationRoutes = require("./modules/destination/destination.routes");
-const venueRoutes = require("./modules/venue/venue.routes");
-const portfolioRoutes = require("./modules/portfolio/portfolio.routes");
-const contactRoutes = require("./modules/contact/contact.routes");
-const journalRoutes = require("./modules/journal/journal.routes");
-const portfolioPageRoutes = require("./modules/portfolioPage/portfolioPage.routes");
-const artistCategoryRoutes = require("./modules/artistCategory/artistCategory.routes");
-const artistRoutes = require("./modules/artist/artist.routes");
+const adminRoutes = require("./src/modules/admin/admin.routes");
+const destinationRoutes = require("./src/modules/destination/destination.routes");
+const venueRoutes = require("./src/modules/venue/venue.routes");
+const portfolioRoutes = require("./src/modules/portfolio/portfolio.routes");
+const contactRoutes = require("./src/modules/contact/contact.routes");
+const journalRoutes = require("./src/modules/journal/journal.routes");
+const portfolioPageRoutes = require("./src/modules/portfolioPage/portfolioPage.routes");
+const artistCategoryRoutes = require("./src/modules/artistCategory/artistCategory.routes");
+const artistRoutes = require("./src/modules/artist/artist.routes");
 
 // Import middleware
-const errorHandler = require("./middleware/errorHandler");
+const errorHandler = require("./src/middleware/errorHandler");
 
 dotenv.config();
 
