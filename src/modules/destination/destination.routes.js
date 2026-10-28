@@ -13,6 +13,7 @@ const destinationUpload = upload.fields([
 // Public routes
 router.get("/", DestinationController.getAll);
 router.get("/featured", DestinationController.getFeatured);
+router.get("/slug/:slug", DestinationController.getBySlug);
 router.get("/:id", DestinationController.getById);
 
 // Admin routes (Protected)

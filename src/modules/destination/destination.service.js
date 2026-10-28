@@ -3,7 +3,7 @@ const Destination = require("./destination.model");
 
 class DestinationService {
   // Get all destinations
- static async getAll(filters) {
+  static async getAll(filters) {
     const { country, state, city, category, page, limit } = filters;
 
     // 1. Build the dynamic MongoDB query object
@@ -32,7 +32,7 @@ class DestinationService {
         .sort({ createdAt: -1 }) // Newest first
         .skip(skip)
         .limit(limit),
-      Destination.countDocuments(query)
+      Destination.countDocuments(query),
     ]);
 
     // 4. Return the exact shape your frontend Dropdown Menu is expecting!
@@ -41,13 +41,17 @@ class DestinationService {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     };
   }
 
   // Get featured destinations
   static async getFeatured() {
     return await Destination.find({ featured: true }).limit(6);
+  }
+
+  static async getBySlug(slug) {
+    return await Destination.findOne({ slug: slug.toLowerCase().trim() });
   }
 
   // Get single destination

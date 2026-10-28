@@ -420,12 +420,10 @@ class DestinationController {
       });
     } catch (error) {
       console.error("❌ Delete Image Error:", error);
-      res
-        .status(500)
-        .json({
-          success: false,
-          message: error.message || "Failed to delete image",
-        });
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to delete image",
+      });
     }
   }
 
@@ -464,14 +462,31 @@ class DestinationController {
       });
     } catch (error) {
       console.error("❌ Delete Banner Image Error:", error);
-      res
-        .status(500)
-        .json({
-          success: false,
-          message: error.message || "Failed to delete banner image",
-        });
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to delete banner image",
+      });
     }
   }
+
+   static async getBySlug(req, res) {
+    try {
+      const destination = await DestinationService.getBySlug(req.params.slug);
+      if (!destination) {
+        return res.status(404).json({
+          success: false,
+          message: "Destination not found",
+        });
+      }
+      res.status(200).json({ success: true, data: destination });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to fetch destination",
+      });
+    }
+  }
+
 }
 
 module.exports = DestinationController;
